@@ -145,7 +145,7 @@ class DiscordBot extends Client {
                 const lastMessage = messages.find(msg => msg.embeds.length > 0 && msg.author.id === this.user.id);
 
                 if (lastMessage) {
-                    const embed = lastMessage.embeds[0];
+                    const embed = EmbedBuilder.from(lastMessage.embeds[0]);
                     embed.setTitle(`🎶 ${track?.info?.title}`.substring(0, 256))
                         .setThumbnail(track?.info?.artworkUrl || track?.pluginInfo?.artworkUrl || null)
                         .setDescription(
