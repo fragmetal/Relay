@@ -241,7 +241,7 @@ class DiscordBot extends Client {
             const statusMessages = [
                 { name: `Use /help to see all commands`, type: 4 },
                 { name: `Uptime | ${formattedUptime}`, type: 4 },
-                { name: `Serving users | ${this.guilds.cache.size}`, type: 4 }
+                { name: `Serving Guilds | ${this.guilds.cache.size}`, type: 4 }
             ];
             this.user.setPresence({ activities: [statusMessages[index]] });
             index = (index + 1) % statusMessages.length;
