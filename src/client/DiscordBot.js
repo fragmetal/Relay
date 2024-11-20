@@ -138,38 +138,67 @@ class DiscordBot extends Client {
                 return `${hours > 0 ? `${hours}:` : ''}${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
             };
 
-            const embeds = [
-                new EmbedBuilder()
-                    .setColor("Blurple")
-                    .setTitle(`🎶 ${track?.info?.title}`.substring(0, 256))
-                    .setThumbnail(track?.info?.artworkUrl || track?.pluginInfo?.artworkUrl || null)
-                    .setDescription(
-                        [
-                            `> - **Author:** ${track?.info?.author}`,
-                            `> - **Duration:** ${formatDuration(track?.info?.duration || 0)} | Ends <t:${Math.floor((Date.now() + (track?.info?.duration || 0)) / 1000)}:R>`,
-                            `> - **Source:** ${track?.info?.sourceName}`,
-                            `> - **Requester:** <@${track?.requester?.id}>`,
-                            track?.pluginInfo?.clientData?.fromAutoplay ? `> *From Autoplay* ✅` : undefined
-                        ].filter(Boolean).join("\n").substring(0, 4096)
-                    )
-                    .setFooter({
-                        text: `Requested by ${track?.requester?.username}`,
-                        iconURL: /^https?:\/\//.test(avatarURL || "") ? avatarURL : undefined,
-                    })
-                    .setTimestamp()
-            ];
-
-            if (track?.info?.uri && /^https?:\/\//.test(track?.info?.uri)) {
-                embeds[0].setURL(track.info.uri);
-            }
-
             const channel = this.channels.cache.get(player.textChannelId);
 
             if (channel?.isTextBased()) {
-                await channel.send({
-                    content: '',
-                    embeds
-                });
+                const messages = await channel.messages.fetch({ limit: 10 });
+                const lastMessage = messages.find(msg => msg.embeds.length > 0 && msg.author.id === this.user.id);
+
+                if (lastMessage) {
+                    const embed = lastMessage.embeds[0];
+                    embed.setTitle(`🎶 ${track?.info?.title}`.substring(0, 256))
+                        .setThumbnail(track?.info?.artworkUrl || track?.pluginInfo?.artworkUrl || null)
+                        .setDescription(
+                            [
+                                `> - **Author:** ${track?.info?.author}`,
+                                `> - **Duration:** ${formatDuration(track?.info?.duration || 0)} | Ends <t:${Math.floor((Date.now() + (track?.info?.duration || 0)) / 1000)}:R>`,
+                                `> - **Source:** ${track?.info?.sourceName}`,
+                                `> - **Requester:** <@${track?.requester?.id}>`,
+                                track?.pluginInfo?.clientData?.fromAutoplay ? `> *From Autoplay* ✅` : undefined
+                            ].filter(Boolean).join("\n").substring(0, 4096)
+                        )
+                        .setFooter({
+                            text: `Requested by ${track?.requester?.username}`,
+                            iconURL: /^https?:\/\//.test(avatarURL || "") ? avatarURL : undefined,
+                        })
+                        .setTimestamp();
+
+                    if (track?.info?.uri && /^https?:\/\//.test(track?.info?.uri)) {
+                        embed.setURL(track.info.uri);
+                    }
+
+                    await lastMessage.edit({ embeds: [embed] });
+                } else {
+                    const embeds = [
+                        new EmbedBuilder()
+                            .setColor("Blurple")
+                            .setTitle(`🎶 ${track?.info?.title}`.substring(0, 256))
+                            .setThumbnail(track?.info?.artworkUrl || track?.pluginInfo?.artworkUrl || null)
+                            .setDescription(
+                                [
+                                    `> - **Author:** ${track?.info?.author}`,
+                                    `> - **Duration:** ${formatDuration(track?.info?.duration || 0)} | Ends <t:${Math.floor((Date.now() + (track?.info?.duration || 0)) / 1000)}:R>`,
+                                    `> - **Source:** ${track?.info?.sourceName}`,
+                                    `> - **Requester:** <@${track?.requester?.id}>`,
+                                    track?.pluginInfo?.clientData?.fromAutoplay ? `> *From Autoplay* ✅` : undefined
+                                ].filter(Boolean).join("\n").substring(0, 4096)
+                            )
+                            .setFooter({
+                                text: `Requested by ${track?.requester?.username}`,
+                                iconURL: /^https?:\/\//.test(avatarURL || "") ? avatarURL : undefined,
+                            })
+                            .setTimestamp()
+                    ];
+
+                    if (track?.info?.uri && /^https?:\/\//.test(track?.info?.uri)) {
+                        embeds[0].setURL(track.info.uri);
+                    }
+
+                    await channel.send({
+                        content: '',
+                        embeds
+                    });
+                }
             }
         })
         .on("trackStuck", async (player, track, payload) => {
@@ -179,7 +208,7 @@ class DiscordBot extends Client {
             error(`Error with track: ${track ? track.title : 'unknown'}`);
         })
         .on("trackEnd", async (player, track, payload) => {
-            info(`Finished playing: ${track ? track.title : 'unknown'}`);
+            //info(`Finished playing: ${track ? track.title : 'unknown'}`);
         })
         .on("queueEnd", async (player, track, payload) => {
 
@@ -188,16 +217,16 @@ class DiscordBot extends Client {
             //info(`Player created`);
         })
         .on("playerDestroy", async (player, reason) => {
-            error(`Player destroyed. Reason: ${reason}`);
+            //error(`Player destroyed. Reason: ${reason}`);
         })
         .on("playerDisconnect", async (player, voiceChannelId) => {
-            info(`Player disconnected from voice channel: ${voiceChannelId}`);
+            //info(`Player disconnected from voice channel: ${voiceChannelId}`);
         })
         .on("playerMove", async (player, oldChannelId, newChannelId) => {
-            info(`Player moved from channel ${oldChannelId} to ${newChannelId}`);
+            //info(`Player moved from channel ${oldChannelId} to ${newChannelId}`);
         })
         .on("playerSocketClosed", async (player, payload) => {
-            error(`Player socket closed: `, payload);
+            //error(`Player socket closed: `, payload);
         })
         .on("playerUpdate", async (player) => {
             //info(`Player updated: ${player.id}`);
@@ -209,22 +238,22 @@ class DiscordBot extends Client {
             //info(`Player deaf state changed. Deaf: ${deaf}, Server Deaf: ${serverDeaf}`);
         })
         .on("playerSupressChange", async (player, supress) => {
-            info(`Player suppress state changed: ${supress}`);
+            //info(`Player suppress state changed: ${supress}`);
         })
         .on("playerQueueEntryStart", async (player, track) => {
-            info(`Queue entry started for track: ${track ? track.title : 'unknown'}`);
+            //info(`Queue entry started for track: ${track ? track.title : 'unknown'}`);
         })
         .on("playerQueueEntryEnd", async (player, track) => {
-            info(`Queue entry ended for track: ${track ? track.title : 'unknown'}`);
+            //info(`Queue entry ended for track: ${track ? track.title : 'unknown'}`);
         })
         .on("playerQueueEntryCancel", async (player, track) => {
-            info(`Queue entry cancelled for track: ${track ? track.title : 'unknown'}`);
+            //info(`Queue entry cancelled for track: ${track ? track.title : 'unknown'}`);
         })
         .on("playerEmpty", async (player, track, send) => {
-            info(`Player empty event triggered for track: ${track ? track.title : 'unknown'}`);
+            //info(`Player empty event triggered for track: ${track ? track.title : 'unknown'}`);
         })
         .on("playerEmptyWithQueue", async (player, send) => {
-            info(`Player empty with queue event triggered`);
+            //info(`Player empty with queue event triggered`);
         });
     }
 
