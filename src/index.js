@@ -77,7 +77,7 @@ const server = http.createServer((req, res) => {
     }
 });
 
-server.listen(3000, () => {});
+server.listen(2067, () => {});
 
 const logStream = fs.createWriteStream(logFilePath, { flags: 'a' });
 const originalConsoleLog = console.log;
