@@ -8,6 +8,7 @@ const ComponentsListener = require("./handler/ComponentsListener");
 const EventsHandler = require("./handler/EventsHandler");
 const { QuickYAML } = require('quick-yaml.db');
 const { LavalinkManager } = require('lavalink-client');
+const {insertDocument, updateDocument, checkDocument, setDocument, deleteDocument } = require('../utils/mongodb');
 
 require('dotenv').config();
 
@@ -74,12 +75,70 @@ class DiscordBot extends Client {
             };
         });
 
+        const previouslyUsedSessions = new Map();
+
         this.lavalink = new LavalinkManager({
             nodes: nodes,
+            sessionId: previouslyUsedSessions.get("node"),
+            requestSignalTimeoutMS: 3000,
+            closeOnError: true,
+            heartBeatInterval: 30_000,
+            enablePingOnStatsCheck: true,
+            retryDelay: 10e3,
+            secure: false,
+            retryAmount: 5,
             sendToShard: (id, payload) => {
                 const guild = this.guilds.cache.get(id);
                 if (guild) {
                     guild.shard.send(payload);
+                }
+            },
+            playerOptions: {
+                // These are the default prevention methods
+                maxErrorsPerTime: {
+                    threshold: 10_000,
+                    maxAmount: 3,
+                },
+                // only allow an autoplay function to execute, if the previous function was longer ago than this number.
+                minAutoPlayMs: 10_000,
+        
+                applyVolumeAsFilter: false,
+                clientBasedPositionUpdateInterval: 50, // in ms to up-calc player.position
+                defaultSearchPlatform: "ytmsearch",
+                volumeDecrementer: 0.75, // on client 100% == on lavalink 75%
+                onDisconnect: {
+                    autoReconnect: true, // automatically attempts a reconnect, if the bot disconnects from the voice channel, if it fails, it get's destroyed
+                    destroyPlayer: false // overrides autoReconnect and directly destroys the player if the bot disconnects from the vc
+                },
+                onEmptyQueue: {
+                    // will auto destroy the player after 30s if the queue got empty and autoplay function does not add smt to the queue
+                    destroyAfterMs: 30_000, // 1 === instantly destroy | don't provide the option, to don't destroy the player
+                    //autoPlayFunction: autoPlayFunction,
+                },
+                useUnresolvedData: true,
+            },
+            queueOptions: {
+                maxPreviousTracks: 10,
+                // only needed if you want and need external storage, don't provide if you don't need to
+               // queueStore: new myCustomStore(client.redis), // client.redis = new redis()
+                // only needed, if you want to watch changes in the queue via a custom class,
+                //queueChangesWatcher: new myCustomWatcher(client)
+            },
+            linksAllowed: true,
+            // example: don't allow p*rn / youtube links., you can also use a regex pattern if you want.
+            // linksBlacklist: ["porn", "youtube.com", "youtu.be"],
+            linksBlacklist: [],
+            linksWhitelist: [],
+            advancedOptions: {
+                enableDebugEvents: true,
+                maxFilterFixDuration: 600_000, // only allow instafixfilterupdate for tracks sub 10mins
+                debugOptions: {
+                    noAudio: false,
+                    playerDestroy: {
+                        dontThrowError: false,
+                        debugLog: false,
+                    },
+                    logCustomSearches: false,
                 }
             }
         });
@@ -99,6 +158,8 @@ class DiscordBot extends Client {
 
         // Lavalink node event listeners
         this.lavalink.nodeManager.on("connect", async (node) => {
+            node.updateSession(true, 360e3);
+            previouslyUsedSessions.set(node.id, node.sessionId)
             success(`The Lavalink Node #${node.id} connected`);
         })
         .on("disconnect", async (node, _reason) => {
@@ -120,9 +181,60 @@ class DiscordBot extends Client {
             error(`The Lavalink Node #${node.id} offline`);
         })
         .on("resumed", async (node, payload, players) => {
-            info(`The Lavalink Node #${node.id} resumed. Ensure to add players to the manager.`);
-        });
+            // create players:
+            for (const fetchedPlayer of players) {
+                // fetchedPlayer is the live data from lavalink
+                // saved Player data is the config you should save in a database / file or smt
+                const savedPlayerData = await this.getSavedPlayerData(fetchedPlayer.guildId);
+                if (!savedPlayerData) {
+                    await insertDocument('playerData', { guildId: fetchedPlayer.guildId }, fetchedPlayer);
+                }
+                // if lavalink says the bot got disconnected, we can skip the resuming, or force reconnect whatever you want!, here we choose to not do anything and thus delete the saved player data
+                if (!fetchedPlayer.state.connected) {
+                    console.log("skipping resuming player, because it already disconnected");
+                    await this.deletedSavedPlayerData(fetchedPlayer.guildId);
+                    continue;
+                }
+                // now you can create the player based on the live and saved data
+                const player = this.lavalink.createPlayer({
+                    guildId: fetchedPlayer.guildId,
+                    node: node.id,
+                    // you need to update the volume of the player by the volume of lavalink which might got decremented by the volume decrementer
+                    volume: this.lavalink.options.playerOptions?.volumeDecrementer
+                        ? Math.round(fetchedPlayer.volume / this.lavalink.options.playerOptions.volumeDecrementer)
+                        : fetchedPlayer.volume,
+                    // all of the following options are needed to be provided by some sort of player saving
+                    voiceChannelId: savedPlayerData.voiceChannelId,
+                    textChannelId: savedPlayerData.textChannelId,
+                    // all of the following options can either be saved too, or you can use pre-defined defaults
+                    selfDeaf: savedPlayerData.options?.selfDeaf || true,
+                    selfMute: savedPlayerData.options?.selfMute || false,
 
+                    applyVolumeAsFilter: savedPlayerData.options.applyVolumeAsFilter,
+                    instaUpdateFiltersFix: savedPlayerData.options.instaUpdateFiltersFix,
+                    vcRegion: savedPlayerData.options.vcRegion,
+                });
+
+                // player.voice = fetchedPlayer.voice;
+                // normally just player.voice is enough, but if you restart the entire bot, you need to create a new connection, thus call player.connect();
+                await player.connect();
+
+                player.filterManager.data = fetchedPlayer.filters; // override the filters data
+                await player.queue.utils.sync(true, false); // get the queue data including the current track (for the requester)
+                // override the current track with the data from lavalink
+                if (fetchedPlayer.track) player.queue.current = this.lavalink.utils.buildTrack(fetchedPlayer.track, player.queue.current?.requester || this.user);
+                // override the position of the player
+                player.lastPosition = fetchedPlayer.state.position;
+                player.lastPositionChange = Date.now();
+                // you can also override the ping of the player, or wait about 30s till it's done automatically
+                player.ping.lavalink = fetchedPlayer.state.ping;
+                // important to have skipping work correctly later
+                player.paused = fetchedPlayer.paused;
+                player.playing = !fetchedPlayer.paused && !!fetchedPlayer.track;
+                // That's about it
+            }
+        });
+        
         // Example of handling player events
         this.lavalink.on("trackStart", async (player, track, payload) => {
             const avatarURL = track?.requester?.avatar || undefined;
@@ -231,7 +343,7 @@ class DiscordBot extends Client {
             //info(`Player created`);
         })
         .on("playerDestroy", async (player, reason) => {
-            //error(`Player destroyed. Reason: ${reason}`);
+            await this.deletedSavedPlayerData(player.guildId);
         })
         .on("playerDisconnect", async (player, voiceChannelId) => {
             //info(`Player disconnected from voice channel: ${voiceChannelId}`);
@@ -242,8 +354,8 @@ class DiscordBot extends Client {
         .on("playerSocketClosed", async (player, payload) => {
             //error(`Player socket closed: `, payload);
         })
-        .on("playerUpdate", async (player) => {
-            //info(`Player updated: ${player.id}`);
+        .on("playerUpdate", async (oldPlayer, newPlayer) => {
+            await this.setSavedPlayerData(newPlayer.toJSON());
         })
         .on("playerMuteChange", async (player, muted, serverMuted) => {
             //info(`Player mute state changed. Muted: ${muted}, Server Muted: ${serverMuted}`);
@@ -311,6 +423,37 @@ class DiscordBot extends Client {
             error(err);
             this.login_attempts++;
             setTimeout(this.connect, 5000);
+        }
+    }
+
+    // Function to get saved player data
+    getSavedPlayerData = async (guildId) => {
+        try {
+            const data = await checkDocument('playerData', { guildId });
+            return data || []; // Return an empty array if no data found
+        } catch (err) {
+            error(`Failed to get saved player data for guild ${guildId}: ${err.message}`);
+            return null; // Return null in case of error
+        }
+    }
+
+    // Function to delete saved player data
+    deletedSavedPlayerData = async (guildId) => {
+        try {
+            await deleteDocument('playerData', { guildId });
+            // success(`Deleted saved player data for guild ${guildId}`);
+        } catch (err) {
+            error(`Failed to delete saved player data for guild ${guildId}: ${err.message}`);
+        }
+    }
+
+    // Function to set saved player data
+    setSavedPlayerData = async (playerData) => {
+        try {
+            await setDocument('playerData', { guildId: playerData.guildId }, playerData);
+            // success(`Saved player data for guild ${playerData.guildId}`);
+        } catch (err) {
+            error(`Failed to save player data for guild ${playerData.guildId}: ${err.message}`);
         }
     }
 }
