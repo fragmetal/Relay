@@ -211,7 +211,21 @@ class DiscordBot extends Client {
             //info(`Finished playing: ${track ? track.title : 'unknown'}`);
         })
         .on("queueEnd", async (player, track, payload) => {
+            const channel = this.channels.cache.get(player.textChannelId);
 
+            if (channel?.isTextBased()) {
+                const lastMessage = await channel.messages.fetch({ limit: 1 }).then(messages => messages.first());
+                if (lastMessage) {
+                    const embed = new EmbedBuilder()
+                        .setColor("Red")
+                        .setTitle("Queue Ended")
+                        .setDescription("The music queue has ended.")
+                        .setTimestamp();
+
+                    await lastMessage.edit({ embeds: [embed] });
+                    setTimeout(() => lastMessage.delete(), 3000);
+                }
+            }
         })
         .on("playerCreate", async (player) => {
             //info(`Player created`);
