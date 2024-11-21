@@ -3,6 +3,7 @@ const AutocompleteComponent = require("../../structure/AutocompleteComponent");
 module.exports = new AutocompleteComponent({
     commandName: 'play',
     run: async (client, interaction) => {
+        await interaction.deferReply();
 
         const focussedQuery = interaction.options.getFocused();
         const src = interaction.options.getString('source');
@@ -10,7 +11,7 @@ module.exports = new AutocompleteComponent({
         // Ensure the user is in a voice channel
         const vcId = interaction.member.voice.channelId;
         if (!vcId) {
-            return await interaction.respond([{ name: `Join a voice Channel`, value: "join_vc" }]);
+            return await interaction.editReply([{ name: `Join a voice Channel`, value: "join_vc" }]);
         }
 
         const player = client.lavalink.getPlayer(interaction.guildId) || await client.lavalink.createPlayer({
@@ -23,20 +24,20 @@ module.exports = new AutocompleteComponent({
         });
 
         if (!focussedQuery.trim()) {
-            return await interaction.respond([{ name: `Please enter a search keyword`, value: "no_query" }]);
+            return await interaction.editReply([{ name: `Please enter a search keyword`, value: "no_query" }]);
         }
 
         // Search for tracks based on the user's input
         const response = await player.search({ query: focussedQuery, source: src }, interaction.user);
 
         if (!response || !response.tracks.length) {
-            return await interaction.respond([{ name: `No Tracks found`, value: "nothing_found" }]);
+            return await interaction.editReply([{ name: `No Tracks found`, value: "nothing_found" }]);
         }
 
         if (focussedQuery.includes("playlist")) {
             const playlistName = response.playlist?.name || "Unknown Playlist";
             const cleanedQuery = focussedQuery.replace(/\s+/g, '');
-            return await interaction.respond([{ name: `Playlist: ${playlistName} - ${response.tracks.length} tracks`, value: `${cleanedQuery}` }]);
+            return await interaction.editReply([{ name: `Playlist: ${playlistName} - ${response.tracks.length} tracks`, value: `${cleanedQuery}` }]);
         }
 
         // Convert duration to hh:mm:ss format
@@ -70,6 +71,6 @@ module.exports = new AutocompleteComponent({
         }).filter(choice => choice.name.length > 0 && choice.name.length <= 90);
 
         // Respond with the choices
-        await interaction.respond(choices);
+        await interaction.editReply(choices);
     }
 }).toJSON();
