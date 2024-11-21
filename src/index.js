@@ -73,15 +73,56 @@ const server = http.createServer((req, res) => {
         });
     } else {
         res.writeHead(404, { 'Content-Type': 'text/html' });
-        res.end('<h1>Not Found</h1>');
+        res.end(`
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Bot is running</title>
+                <style>
+                    body {
+                        font-family: Arial, sans-serif;
+                        margin: 0;
+                        padding: 0;
+                        background-color: #f4f4f9;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        height: 100vh;
+                    }
+                    .container {
+                        text-align: center;
+                    }
+                    h1 {
+                        color: #333;
+                    }
+                    .button {
+                        display: inline-block;
+                        margin-top: 20px;
+                        padding: 10px 20px;
+                        font-size: 16px;
+                        color: #fff;
+                        background-color: #007bff;
+                        border: none;
+                        border-radius: 5px;
+                        text-decoration: none;
+                        transition: background-color 0.3s ease;
+                    }
+                    .button:hover {
+                        background-color: #0056b3;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h1>Click Me</h1>
+                    <a href="/logs" class="button">Go to Logs</a>
+                </div>
+            </body>
+            </html>
+        `);
     }
 });
 
 server.listen(2067, () => {});
-
-const logStream = fs.createWriteStream(logFilePath, { flags: 'a' });
-const originalConsoleLog = console.log;
-console.log = (...args) => {
-    originalConsoleLog(...args);
-    logStream.write(args.join(' ') + '\n');
-};
