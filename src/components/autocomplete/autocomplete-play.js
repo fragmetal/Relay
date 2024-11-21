@@ -3,43 +3,11 @@ const AutocompleteComponent = require("../../structure/AutocompleteComponent");
 module.exports = new AutocompleteComponent({
     commandName: 'play',
     run: async (client, interaction) => {
-        await interaction.deferReply();
-
-        const focussedQuery = interaction.options.getFocused();
+        const focusedQuery = interaction.options.getFocused();
         const src = interaction.options.getString('source');
 
         // Ensure the user is in a voice channel
         const vcId = interaction.member.voice.channelId;
-        if (!vcId) {
-            return await interaction.editReply([{ name: `Join a voice Channel`, value: "join_vc" }]);
-        }
-
-        const player = client.lavalink.getPlayer(interaction.guildId) || await client.lavalink.createPlayer({
-            guildId: interaction.guildId,
-            voiceChannelId: vcId,
-            textChannelId: interaction.channelId,
-            selfDeaf: true,
-            selfMute: false,
-            volume: client.defaultVolume,
-        });
-
-        if (!focussedQuery.trim()) {
-            return await interaction.editReply([{ name: `Please enter a search keyword`, value: "no_query" }]);
-        }
-
-        // Search for tracks based on the user's input
-        const response = await player.search({ query: focussedQuery, source: src }, interaction.user);
-
-        if (!response || !response.tracks.length) {
-            return await interaction.editReply([{ name: `No Tracks found`, value: "nothing_found" }]);
-        }
-
-        if (focussedQuery.includes("playlist")) {
-            const playlistName = response.playlist?.name || "Unknown Playlist";
-            const cleanedQuery = focussedQuery.replace(/\s+/g, '');
-            return await interaction.editReply([{ name: `Playlist: ${playlistName} - ${response.tracks.length} tracks`, value: `${cleanedQuery}` }]);
-        }
-
         // Convert duration to hh:mm:ss format
         function formatDuration(duration) {
             if (!duration || duration <= 0) return "Unknown Duration"; // Handle invalid duration
@@ -51,6 +19,55 @@ module.exports = new AutocompleteComponent({
 
             return `${hours > 0 ? `${hours}:` : ''}${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
         }
+
+        if (!vcId) {
+            return await interaction.respond([{ name: `Join a voice Channel`, value: "join_vc" }]);
+        }
+
+        const player = client.lavalink.getPlayer(interaction.guildId) || await client.lavalink.createPlayer({
+            guildId: interaction.guildId,
+            voiceChannelId: vcId,
+            textChannelId: interaction.channelId,
+            selfDeaf: true,
+            selfMute: false,
+            volume: client.defaultVolume,
+        });
+
+        if (!focusedQuery.trim()) {
+            return await interaction.respond([{ name: `Please enter a search keyword`, value: "no_query" }]);
+        }
+        const cleanedQuery = focusedQuery.replace(/\s+/g, '');
+        // Check if the cleaned query is a URL
+        const isUrl = /^https?:\/\//.test(cleanedQuery);
+        // Search for tracks based on the user's input if it's a URL, else use the original query
+        const response = await player.search({ query: isUrl ? cleanedQuery : focusedQuery, source: src }, interaction.user);
+
+        if (!response || !response.tracks.length) {
+            return await interaction.respond([{ name: `No Tracks found`, value: "nothing_found" }]);
+        }
+
+        if (focusedQuery.includes("playlist")) {
+
+            if (!response.tracks || !response.tracks.length) {
+                return await interaction.respond([{ name: `No Tracks found in playlist`, value: "nothing_found" }]);
+            }
+            
+            const totalDuration = response.tracks.reduce((acc, track) => acc + track.info.duration, 0);
+            const playlistName = response.playlist?.name || "Unknown Playlist";
+            const playlistUrl = response.playlist?.uri || "unknown_url";
+
+            const playlistInfo = `Name: ${playlistName} | ${response.tracks.length} Songs | ${formatDuration(totalDuration)}`;
+            const choices = [{ name: playlistInfo, value: playlistUrl }];
+            
+            await interaction.respond(choices);
+            return;
+        }
+
+        // if (focusedQuery.includes("playlist")) {
+        //     const playlistName = response.playlist?.name || "Unknown Playlist";
+        //     const cleanedQuery = focusedQuery.replace(/\s+/g, '');
+        //     return await interaction.respond([{ name: `Playlist: ${playlistName} - ${response.tracks.length} tracks`, value: `${cleanedQuery}` }]);
+        // }
 
         const choices = response.tracks.map(track => {
             let title = track.info.title;
@@ -71,6 +88,6 @@ module.exports = new AutocompleteComponent({
         }).filter(choice => choice.name.length > 0 && choice.name.length <= 90);
 
         // Respond with the choices
-        await interaction.editReply(choices);
+        await interaction.respond(choices);
     }
 }).toJSON();

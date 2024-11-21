@@ -238,11 +238,16 @@ class DiscordBot extends Client {
         // Example of handling player events
         this.lavalink.on("trackStart", async (player, track, payload) => {
             const channel = this.channels.cache.get(player.textChannelId);
-
+            const avatarURL = this.user.avatarURL();
             if (channel?.isTextBased()) {
                 const messages = await channel.messages.fetch({ limit: 10 });
                 const lastMessage = messages.find(msg => msg.embeds.length > 0 && msg.author.id === this.user.id);
-
+                const formatDuration = (duration) => {
+                    const seconds = Math.floor(duration / 1000);
+                    const minutes = Math.floor(seconds / 60);
+                    const hours = Math.floor(minutes / 60);
+                    return `${hours}:${(minutes % 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`;
+                };
                 if (lastMessage) {
                     // Check if the last message was sent by the bot
                     if (lastMessage.author.id === this.user.id) {
