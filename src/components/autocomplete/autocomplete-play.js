@@ -6,6 +6,9 @@ module.exports = new AutocompleteComponent({
         const focussedQuery = interaction.options.getFocused();
         const src = interaction.options.getString('source');
 
+        // Check if the interaction is still valid before responding
+        if (!interaction.isCommand()) return; // Ensure it's a command interaction
+
         // Ensure the user is in a voice channel
         const vcId = interaction.member.voice.channelId;
         if (!vcId) return interaction.respond([{ name: `Join a voice Channel`, value: "join_vc" }]);
