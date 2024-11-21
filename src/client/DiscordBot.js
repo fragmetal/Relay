@@ -237,19 +237,6 @@ class DiscordBot extends Client {
         
         // Example of handling player events
         this.lavalink.on("trackStart", async (player, track, payload) => {
-            const avatarURL = track?.requester?.avatar || undefined;
-
-            const formatDuration = (duration) => {
-                if (!duration || duration <= 0) return "Unknown Duration";
-
-                const totalSeconds = Math.floor(duration / 1000);
-                const hours = Math.floor(totalSeconds / 3600);
-                const minutes = Math.floor((totalSeconds % 3600) / 60);
-                const seconds = totalSeconds % 60;
-
-                return `${hours > 0 ? `${hours}:` : ''}${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-            };
-
             const channel = this.channels.cache.get(player.textChannelId);
 
             if (channel?.isTextBased()) {
@@ -257,30 +244,65 @@ class DiscordBot extends Client {
                 const lastMessage = messages.find(msg => msg.embeds.length > 0 && msg.author.id === this.user.id);
 
                 if (lastMessage) {
-                    const embed = EmbedBuilder.from(lastMessage.embeds[0]);
-                    embed.setTitle(`🎶 ${track?.info?.title}`.substring(0, 256))
-                        .setThumbnail(track?.info?.artworkUrl || track?.pluginInfo?.artworkUrl || null)
-                        .setDescription(
-                            [
-                                `> - **Author:** ${track?.info?.author}`,
-                                `> - **Duration:** ${formatDuration(track?.info?.duration || 0)} | Ends <t:${Math.floor((Date.now() + (track?.info?.duration || 0)) / 1000)}:R>`,
-                                `> - **Source:** ${track?.info?.sourceName}`,
-                                `> - **Requester:** <@${track?.requester?.id}>`,
-                                track?.pluginInfo?.clientData?.fromAutoplay ? `> *From Autoplay* ✅` : undefined
-                            ].filter(Boolean).join("\n").substring(0, 4096)
-                        )
-                        .setFooter({
-                            text: `Requested by ${track?.requester?.username}`,
-                            iconURL: /^https?:\/\//.test(avatarURL || "") ? avatarURL : undefined,
-                        })
-                        .setTimestamp();
+                    // Check if the last message was sent by the bot
+                    if (lastMessage.author.id === this.user.id) {
+                        const embed = EmbedBuilder.from(lastMessage.embeds[0]);
+                        embed.setTitle(`🎶 ${track?.info?.title}`.substring(0, 256))
+                            .setThumbnail(track?.info?.artworkUrl || track?.pluginInfo?.artworkUrl || null)
+                            .setDescription(
+                                [
+                                    `> - **Author:** ${track?.info?.author}`,
+                                    `> - **Duration:** ${formatDuration(track?.info?.duration || 0)} | Ends <t:${Math.floor((Date.now() + (track?.info?.duration || 0)) / 1000)}:R>`,
+                                    `> - **Source:** ${track?.info?.sourceName}`,
+                                    `> - **Requester:** <@${track?.requester?.id}>`,
+                                    track?.pluginInfo?.clientData?.fromAutoplay ? `> *From Autoplay* ✅` : undefined
+                                ].filter(Boolean).join("\n").substring(0, 4096)
+                            )
+                            .setFooter({
+                                text: `Requested by ${track?.requester?.username}`,
+                                iconURL: /^https?:\/\//.test(avatarURL || "") ? avatarURL : undefined,
+                            })
+                            .setTimestamp();
 
-                    if (track?.info?.uri && /^https?:\/\//.test(track?.info?.uri)) {
-                        embed.setURL(track.info.uri);
+                        if (track?.info?.uri && /^https?:\/\//.test(track?.info?.uri)) {
+                            embed.setURL(track.info.uri);
+                        }
+
+                        await lastMessage.edit({ embeds: [embed] });
+                    } else {
+                        // If the last message wasn't sent by the bot, send a new message instead
+                        const embeds = [
+                            new EmbedBuilder()
+                                .setColor("Blurple")
+                                .setTitle(`🎶 ${track?.info?.title}`.substring(0, 256))
+                                .setThumbnail(track?.info?.artworkUrl || track?.pluginInfo?.artworkUrl || null)
+                                .setDescription(
+                                    [
+                                        `> - **Author:** ${track?.info?.author}`,
+                                        `> - **Duration:** ${formatDuration(track?.info?.duration || 0)} | Ends <t:${Math.floor((Date.now() + (track?.info?.duration || 0)) / 1000)}:R>`,
+                                        `> - **Source:** ${track?.info?.sourceName}`,
+                                        `> - **Requester:** <@${track?.requester?.id}>`,
+                                        track?.pluginInfo?.clientData?.fromAutoplay ? `> *From Autoplay* ✅` : undefined
+                                    ].filter(Boolean).join("\n").substring(0, 4096)
+                                )
+                                .setFooter({
+                                    text: `Requested by ${track?.requester?.username}`,
+                                    iconURL: /^https?:\/\//.test(avatarURL || "") ? avatarURL : undefined,
+                                })
+                                .setTimestamp()
+                        ];
+
+                        if (track?.info?.uri && /^https?:\/\//.test(track?.info?.uri)) {
+                            embeds[0].setURL(track.info.uri);
+                        }
+
+                        await channel.send({
+                            content: '',
+                            embeds
+                        });
                     }
-
-                    await lastMessage.edit({ embeds: [embed] });
                 } else {
+                    // If no previous message, send a new one
                     const embeds = [
                         new EmbedBuilder()
                             .setColor("Blurple")

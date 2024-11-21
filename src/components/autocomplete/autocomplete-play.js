@@ -3,15 +3,17 @@ const AutocompleteComponent = require("../../structure/AutocompleteComponent");
 module.exports = new AutocompleteComponent({
     commandName: 'play',
     run: async (client, interaction) => {
-        const focussedQuery = interaction.options.getFocused();
-        const src = interaction.options.getString('source');
-
         // Check if the interaction is still valid before responding
         if (!interaction.isCommand()) return; // Ensure it's a command interaction
 
+        const focussedQuery = interaction.options.getFocused();
+        const src = interaction.options.getString('source');
+
         // Ensure the user is in a voice channel
         const vcId = interaction.member.voice.channelId;
-        if (!vcId) return interaction.respond([{ name: `Join a voice Channel`, value: "join_vc" }]);
+        if (!vcId) {
+            return await interaction.respond([{ name: `Join a voice Channel`, value: "join_vc" }]);
+        }
 
         const player = client.lavalink.getPlayer(interaction.guildId) || await client.lavalink.createPlayer({
             guildId: interaction.guildId,
@@ -21,7 +23,7 @@ module.exports = new AutocompleteComponent({
             selfMute: false,
             volume: client.defaultVolume,
         });
-        
+
         if (!focussedQuery.trim()) {
             return await interaction.respond([{ name: `Please enter a search keyword`, value: "no_query" }]);
         }
@@ -32,12 +34,13 @@ module.exports = new AutocompleteComponent({
         if (!response || !response.tracks.length) {
             return await interaction.respond([{ name: `No Tracks found`, value: "nothing_found" }]);
         }
-        
+
         if (focussedQuery.includes("playlist")) {
             const playlistName = response.playlist?.name || "Unknown Playlist";
             const cleanedQuery = focussedQuery.replace(/\s+/g, '');
             return await interaction.respond([{ name: `Playlist: ${playlistName} - ${response.tracks.length} tracks`, value: `${cleanedQuery}` }]);
         }
+
         // Convert duration to hh:mm:ss format
         function formatDuration(duration) {
             if (!duration || duration <= 0) return "Unknown Duration"; // Handle invalid duration
@@ -68,6 +71,7 @@ module.exports = new AutocompleteComponent({
             };
         }).filter(choice => choice.name.length > 0 && choice.name.length <= 90);
 
+        // Respond with the choices
         await interaction.respond(choices);
     }
 }).toJSON();
