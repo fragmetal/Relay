@@ -3,8 +3,6 @@ const AutocompleteComponent = require("../../structure/AutocompleteComponent");
 module.exports = new AutocompleteComponent({
     commandName: 'play',
     run: async (client, interaction) => {
-        // Check if the interaction is still valid before responding
-        if (!interaction.isCommand()) return; // Ensure it's a command interaction
 
         const focussedQuery = interaction.options.getFocused();
         const src = interaction.options.getString('source');
