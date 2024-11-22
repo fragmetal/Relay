@@ -6,9 +6,9 @@ const CommandsListener = require("./handler/CommandsListener");
 const ComponentsHandler = require("./handler/ComponentsHandler");
 const ComponentsListener = require("./handler/ComponentsListener");
 const EventsHandler = require("./handler/EventsHandler");
-const { QuickYAML } = require('quick-yaml.db');
 const { LavalinkManager } = require('lavalink-client');
 const {insertDocument, updateDocument, checkDocument, setDocument, deleteDocument } = require('../utils/mongodb');
+const MyCustomStore = require('../utils/CustomClasses');
 
 require('dotenv').config();
 
@@ -31,7 +31,6 @@ class DiscordBot extends Client {
     commands_handler = new CommandsHandler(this);
     components_handler = new ComponentsHandler(this);
     events_handler = new EventsHandler(this);
-    database = new QuickYAML(config.database.path);
 
     constructor() {
         super({
@@ -71,7 +70,8 @@ class DiscordBot extends Client {
                 id: host,
                 host: host,
                 port: parseInt(port),
-                authorization: authorization
+                authorization: authorization,
+                secure: port === 443,
             };
         });
 
@@ -85,7 +85,6 @@ class DiscordBot extends Client {
             heartBeatInterval: 30_000,
             enablePingOnStatsCheck: true,
             retryDelay: 10e3,
-            secure: false,
             retryAmount: 5,
             sendToShard: (id, payload) => {
                 const guild = this.guilds.cache.get(id);
@@ -120,7 +119,7 @@ class DiscordBot extends Client {
             queueOptions: {
                 maxPreviousTracks: 10,
                 // only needed if you want and need external storage, don't provide if you don't need to
-               // queueStore: new myCustomStore(client.redis), // client.redis = new redis()
+               queueStore: new MyCustomStore(), 
                 // only needed, if you want to watch changes in the queue via a custom class,
                 //queueChangesWatcher: new myCustomWatcher(client)
             },

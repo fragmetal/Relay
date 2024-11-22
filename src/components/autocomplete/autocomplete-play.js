@@ -54,20 +54,13 @@ module.exports = new AutocompleteComponent({
             
             const totalDuration = response.tracks.reduce((acc, track) => acc + track.info.duration, 0);
             const playlistName = response.playlist?.name || "Unknown Playlist";
-            const playlistUrl = response.playlist?.uri || "unknown_url";
-
+            const playlistUrl = response.playlist?.uri || cleanedQuery;
             const playlistInfo = `Name: ${playlistName} | ${response.tracks.length} Songs | ${formatDuration(totalDuration)}`;
             const choices = [{ name: playlistInfo, value: playlistUrl }];
             
             await interaction.respond(choices);
             return;
         }
-
-        // if (focusedQuery.includes("playlist")) {
-        //     const playlistName = response.playlist?.name || "Unknown Playlist";
-        //     const cleanedQuery = focusedQuery.replace(/\s+/g, '');
-        //     return await interaction.respond([{ name: `Playlist: ${playlistName} - ${response.tracks.length} tracks`, value: `${cleanedQuery}` }]);
-        // }
 
         const choices = response.tracks.map(track => {
             let title = track.info.title;
