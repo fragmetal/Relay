@@ -8,20 +8,14 @@ module.exports = new AutocompleteComponent({
 
         // Ensure the user is in a voice channel
         const vcId = interaction.member.voice.channelId;
-        // Convert duration to hh:mm:ss format
-        function formatDuration(duration) {
-            if (!duration || duration <= 0) return "Unknown Duration"; // Handle invalid duration
-
-            const totalSeconds = Math.floor(duration / 1000);
-            const hours = Math.floor(totalSeconds / 3600);
-            const minutes = Math.floor((totalSeconds % 3600) / 60);
-            const seconds = totalSeconds % 60;
-
-            return `${hours > 0 ? `${hours}:` : ''}${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-        }
 
         if (!vcId) {
-            return await interaction.respond([{ name: `Join a voice Channel`, value: "join_vc" }]);
+            try {
+                await interaction.respond([{ name: `Join a voice Channel`, value: "join_vc" }]);
+            } catch (err) {
+                console.error('Failed to respond to interaction:', err);
+            }
+            return;
         }
 
         const player = client.lavalink.getPlayer(interaction.guildId) || await client.lavalink.createPlayer({
@@ -33,54 +27,85 @@ module.exports = new AutocompleteComponent({
             volume: client.defaultVolume,
         });
 
-        if (!focusedQuery.trim()) {
-            return await interaction.respond([{ name: `Please enter a search keyword`, value: "no_query" }]);
-        }
-        const cleanedQuery = focusedQuery.replace(/\s+/g, '');
-        // Check if the cleaned query is a URL
-        const isUrl = /^https?:\/\//.test(cleanedQuery);
-        // Search for tracks based on the user's input if it's a URL, else use the original query
-        const response = await player.search({ query: isUrl ? cleanedQuery : focusedQuery, source: src }, interaction.user);
-
-        if (!response || !response.tracks.length) {
-            return await interaction.respond([{ name: `No Tracks found`, value: "nothing_found" }]);
-        }
-
-        if (focusedQuery.includes("playlist")) {
-
-            if (!response.tracks || !response.tracks.length) {
-                return await interaction.respond([{ name: `No Tracks found in playlist`, value: "nothing_found" }]);
+        if (!focusedQuery) {
+            try {
+                await interaction.respond([{ name: `Please enter a search keyword`, value: "no_query" }]);
+            } catch (err) {
+                console.error('Failed to respond to interaction:', err);
             }
-            
-            const totalDuration = response.tracks.reduce((acc, track) => acc + track.info.duration, 0);
-            const playlistName = response.playlist?.name || "Unknown Playlist";
-            const playlistUrl = response.playlist?.uri || cleanedQuery;
-            const playlistInfo = `Name: ${playlistName} | ${response.tracks.length} Songs | ${formatDuration(totalDuration)}`;
-            const choices = [{ name: playlistInfo, value: playlistUrl }];
-            
-            await interaction.respond(choices);
             return;
         }
 
-        const choices = response.tracks.map(track => {
-            let title = track.info.title;
-            const artist = track.info.author;
-            const duration = formatDuration(track.info.duration);
+        const cleanedQuery = focusedQuery.replace(/\s+/g, '');
+        const isUrl = /^https?:\/\/[^\s]+$/.test(cleanedQuery);
+        let searchSource = src;
 
-            // If the title is over 80 characters, cut it and add artist and duration
-            if (title.length > 80) {
-                title = title.substring(0, 80) + '...';
+        // Automatically detect the source based on the URL
+        if (isUrl) {
+            if (cleanedQuery.includes("youtube.com") || cleanedQuery.includes("youtu.be")) {
+                searchSource = "ytsearch";
+            } else if (cleanedQuery.includes("spotify.com")) {
+                searchSource = "spsearch";
+            } else if (cleanedQuery.includes("soundcloud.com")) {
+                searchSource = "scsearch";
+            } else {
+                searchSource = "ytmsearch"; // Default for unknown URLs
             }
+        } else {
+            searchSource = "ytmsearch"; // Default for keyword searches
+        }
 
-            const finalName = `${title} by ${artist} (${duration})`;
+        const response = await player.search({ query: isUrl ? cleanedQuery : focusedQuery, source: searchSource }, interaction.user);
 
-            return {
-                name: finalName,
-                value: track.info.uri.length > 100 ? track.info.uri.substring(0, 90) + '...' : track.info.uri
-            };
-        }).filter(choice => choice.name.length > 0 && choice.name.length <= 90);
+        // Check if the search is a playlist URL
+        if (isUrl && response.loadType === "playlist") {
+            await player.queue.add(response.tracks);
+            await interaction.respond([{
+                name: `✅ Added [\`${response.tracks.length}\`](<${response.playlist.uri}>) Tracks from the playlist: \`${response.playlist.name || "Unknown Playlist"}\`.`,
+                value: "playlist_added"
+            }]);
+            if (!player.playing) {
+                await player.connect();
+                await player.play();
+            }
+            return; // Exit early since we handled the playlist
+        }
 
-        // Respond with the choices
-        await interaction.respond(choices);
+        if (!response || !response.tracks.length) {
+            try {
+                await interaction.respond([{ name: `No Tracks found`, value: "nothing_found" }]);
+            } catch (err) {
+                console.error('Failed to respond to interaction:', err);
+            }
+            return;
+        }
+
+        let choices;
+        if (!isUrl) {
+            choices = response.tracks.slice(0, 30).map(track => {
+                const duration = new Date(track.info.duration).toISOString().substring(11, 19);
+                let name = `${track.info.title} - By ${track.info.author}`;
+                
+                if (name.length + duration.length + 12 > 90) { // 12 accounts for " - Duration: "
+                    const maxLength = 90 - duration.length - 12;
+                    name = name.substring(0, maxLength).trim() + '...';
+                }
+                
+                name += ` - Duration: ${duration}`;
+                
+                return {
+                    name: name,
+                    value: track.info.uri
+                };
+            });
+            await interaction.respond(choices);
+        }
+        // } else if (response.tracks.length > 1) {
+        //     //const totalDuration = response.tracks.reduce((acc, track) => acc + track.info.duration, 0);
+        //     //const playlistName = response.playlist?.name || "Unknown Playlist";
+        //     //const numberOfTracks = response.tracks.length > 100 ? 100 : response.tracks.length; // Limit to 100 tracks
+        //     //const name = `${playlistName} - Total Duration: ${new Date(totalDuration).toISOString().substring(11, 19)}`;
+        //     await interaction.respond([{ name: "Playlist", value: cleanedQuery }]);
+        // }
     }
 }).toJSON();
