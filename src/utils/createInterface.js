@@ -53,10 +53,10 @@ const createInterface = async (channel) => {
                                     button.style === row2.components[index].data.style
                                 );
 
-            // Check if the description is similar (allowing for minor changes)
-            const isDescriptionSimilar = existingMessage.embeds[0].description.trim().includes(embed.data.description.trim());
+            // Check if the description matches exactly
+            const isDescriptionIdentical = existingMessage.embeds[0].description.trim() === embed.data.description.trim();
 
-            if (isIdentical && isDescriptionSimilar) {
+            if (isIdentical && isDescriptionIdentical) {
                 // console.log(`No changes detected in the interface for channel: ${channel.id}`);
                 return; // Exit if no changes
             }
