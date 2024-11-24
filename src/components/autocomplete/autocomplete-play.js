@@ -60,8 +60,10 @@ module.exports = new AutocompleteComponent({
         // Check if the search is a playlist URL
         if (isUrl && response.loadType === "playlist") {
             await player.queue.add(response.tracks);
+            const playlistName = response.playlist.name || "Unknown Playlist";
+            const responseMessage = `✅ Added [${response.tracks.length}] Tracks from the playlist: ${playlistName}.`;
             await interaction.respond([{
-                name: `✅ Added [\`${response.tracks.length}\`](<${response.playlist.uri}>) Tracks from the playlist: \`${response.playlist.name || "Unknown Playlist"}\`.`,
+                name: responseMessage.substring(0, 100),
                 value: "playlist_added"
             }]);
             if (!player.playing) {
@@ -100,12 +102,5 @@ module.exports = new AutocompleteComponent({
             });
             await interaction.respond(choices);
         }
-        // } else if (response.tracks.length > 1) {
-        //     //const totalDuration = response.tracks.reduce((acc, track) => acc + track.info.duration, 0);
-        //     //const playlistName = response.playlist?.name || "Unknown Playlist";
-        //     //const numberOfTracks = response.tracks.length > 100 ? 100 : response.tracks.length; // Limit to 100 tracks
-        //     //const name = `${playlistName} - Total Duration: ${new Date(totalDuration).toISOString().substring(11, 19)}`;
-        //     await interaction.respond([{ name: "Playlist", value: cleanedQuery }]);
-        // }
     }
 }).toJSON();

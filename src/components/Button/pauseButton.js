@@ -14,17 +14,17 @@ module.exports = new Component({
         const player = client.lavalink.getPlayer(interaction.guildId);
         const voiceChannel = interaction.member.voice.channel;
         if (!voiceChannel) {
-            return await interaction.reply({ content: 'You need to be in a voice channel to pause or unpause a track!', ephemeral: true });
+            const reply = await interaction.reply({ content: 'You need to be in a voice channel to pause or unpause a track!', ephemeral: true });
+            setTimeout(() => reply.delete(), 3000);
+            return;
         }
 
         if (player.paused) {
             await player.resume();
-            const reply = await interaction.reply({ content: 'Track resumed!', ephemeral: true });
-            setTimeout(() => reply.delete(), 1000);
+            await interaction.update({ content: '✅ Track resumed!', ephemeral: true });
         } else {
             await player.pause();
-            const reply = await interaction.reply({ content: 'Track paused!', ephemeral: true });
-            setTimeout(() => reply.delete(), 1000);
+            await interaction.update({ content: '✅ Track paused!', ephemeral: true });
         }
     }
 }).toJSON();

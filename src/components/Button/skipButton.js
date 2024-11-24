@@ -30,8 +30,7 @@ module.exports = new Component({
 
         if (userId === requesterId || !requesterChannel) {
             await player.skip(0, true);
-            const reply = await interaction.reply({ content: 'Track skipped!', ephemeral: true });
-            return setTimeout(() => reply.delete(), 3000);
+            await interaction.update({ content: '✅ Track skipped!', ephemeral: true });
         }
 
         const members = voiceChannel.members.filter(member => !member.user.bot);
@@ -53,12 +52,10 @@ module.exports = new Component({
 
         if (userVotes.size >= requiredVotes) {
             await player.skip(0, true);
-            const reply = await interaction.reply({ content: 'Track skipped!', ephemeral: true });
-            setTimeout(() => reply.delete(), 3000);
+            await interaction.update({ content: '✅ Track skipped!', ephemeral: true });
             skipVotes.delete(interaction.guildId);
         } else {
-            const reply = await interaction.reply({ content: `You have voted to skip the track! ${userVotes.size}/${requiredVotes} votes.`, ephemeral: true });
-            setTimeout(() => reply.delete(), 3000);
+            await interaction.update({ content: `You have voted to skip the track! ${userVotes.size}/${requiredVotes} votes.`, ephemeral: true });
         }
 
         client.skipVotes = skipVotes;

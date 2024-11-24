@@ -20,11 +20,9 @@ module.exports = new Component({
 
         try {
             await player.stopPlaying(true, false); // Stop playing and clear the queue
-            const reply = await interaction.reply({ content: 'Stopped the music and cleared the queue.', ephemeral: true });
-            setTimeout(() => reply.delete(), 3000);
+            await interaction.update({ content: '✅ Stopped the music and cleared the queue.', ephemeral: true });
         } catch (error) {
-            const reply = await interaction.reply({ content: 'Error: Unable to stop the music. ' + error.message, ephemeral: true });
-            setTimeout(() => reply.delete(), 3000);
+            await interaction.update({ content: '❌ Error: Unable to stop the music. ' + error.message, ephemeral: true });
         }
     }
 }).toJSON();

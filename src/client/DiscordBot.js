@@ -283,9 +283,9 @@ class DiscordBot extends Client {
 
                 // Check if the last message exists and edit it or send a new one
                 if (lastMessage) {
-                    await lastMessage.edit({ embeds: [embed], components: [row] });
+                    await lastMessage.edit({ content: null, embeds: [embed], components: [row] });
                 } else {
-                    await channel.send({ embeds: [embed], components: [row] });
+                    await channel.send({ content: null, embeds: [embed], components: [row] });
                 }
             }
         })
@@ -310,7 +310,7 @@ class DiscordBot extends Client {
                         .setDescription("The music queue has ended.")
                         .setTimestamp();
 
-                    await lastMessage.edit({ embeds: [embed] });
+                    await lastMessage.edit({ embeds: [embed], components: [] });
                     setTimeout(() => lastMessage.delete(), 3000);
                 }
             }

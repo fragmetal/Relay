@@ -13,7 +13,7 @@ module.exports = new Component({
     run: async (client, interaction) => {
         const volumeInput = interaction.fields.getTextInputValue('volume-input');
 
-        const volume = parseInt(volumeInput, 10);
+        const volume = parseFloat(volumeInput);
 
         if (isNaN(volume) || volume < 0 || volume > 100) {
             return await interaction.reply({
@@ -31,7 +31,8 @@ module.exports = new Component({
             });
         }
 
-        await player.setVolume(volume); // Set the volume
+        // Set the volume directly to the input value, ignoring the volume decrementer
+        await player.setVolume(volume, true);
 
         const reply = await interaction.reply({
             content: `Volume has been set to **${volume}**%.`,

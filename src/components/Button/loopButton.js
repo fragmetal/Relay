@@ -32,15 +32,10 @@ module.exports = new Component({
                     ])
             );
 
-        if (!client.loopSelections) {
-            client.loopSelections = new Map();
-        }
         await interaction.reply({
             content: 'Please select an option to loop:',
             components: [row],
             ephemeral: true
         });
-        client.loopSelections.set(interaction.user.id, interaction.id);
-        
     }
 }).toJSON(); 

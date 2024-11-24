@@ -10,18 +10,11 @@ module.exports = new Component({
      * @param {import("discord.js").AnySelectMenuInteraction} interaction 
      */
     run: async (client, interaction) => {
-        // Get the interaction ID for the user from the loop selections
-        const interactionId = client.loopSelections.get(interaction.user.id);
-
-        // Optional: Check if the interaction ID is valid
-        if (!interactionId) {
-            return await interaction.reply({ content: 'No active loop selection found for you.', ephemeral: true });
-        }
 
         const player = client.lavalink.getPlayer(interaction.guildId);
-
         if (!player) {
-            return await interaction.followUp({ content: 'No player found for this guild.', ephemeral: true });
+            const reply = await interaction.reply({ content: 'No player found for this guild.', components: [], ephemeral: true });
+            return setTimeout(() => reply.delete(), 3000);
         }
 
         const selectedValue = interaction.values[0];
@@ -29,47 +22,63 @@ module.exports = new Component({
         if (selectedValue === 'track') {
             try {
                 await player.setRepeatMode(player.repeatMode === 'track' ? 'off' : 'track');
-                await interaction.followUp({
+                const reply = await interaction.update({
                     content: `Looping is now **${player.repeatMode === 'track' ? 'enabled' : 'disabled'}** for the current track!`,
+                    components: [],
                     ephemeral: true,
                 });
+                setTimeout(() => reply.delete(), 3000);
+                
             } catch (error) {
-                await interaction.reply({
+                const reply = await interaction.reply({
                     content: 'Error: Unable to toggle track repeat. ' + error.message,
+                    components: [],
                     ephemeral: true,
                 });
+                setTimeout(() => reply.delete(), 3000);
             }
         } else if (selectedValue === 'queue') {
             try {
                 await player.setRepeatMode(player.repeatMode === 'queue' ? 'off' : 'queue');
-                await interaction.reply({
+                const reply = await interaction.update({
                     content: `Looping is now **${player.repeatMode === 'queue' ? 'enabled' : 'disabled'}** for the entire queue!`,
+                    components: [],
                     ephemeral: true,
                 });
+                setTimeout(() => reply.delete(), 3000);
             } catch (error) {
-                await interaction.reply({
+                await interaction.update({
                     content: 'Error: Unable to toggle queue repeat. ' + error.message,
+                    components: [],
                     ephemeral: true,
                 });
+                
             }
         } else if (selectedValue === 'off') {
             try {
                 await player.setRepeatMode('off');
-                await interaction.reply({
+                const reply = await interaction.update({
                     content: 'Looping has been **disabled**.',
+                    components: [],
                     ephemeral: true,
                 });
+                setTimeout(() => reply.delete(), 3000);
+                
             } catch (error) {
-                await interaction.reply({
+                const reply = await interaction.reply({
                     content: 'Error: Unable to disable looping. ' + error.message,
+                    components: [],
                     ephemeral: true,
                 });
+                setTimeout(() => reply.delete(), 3000);
             }
         } else {
-            await interaction.reply({
+            const reply = await interaction.reply({
                 content: 'Invalid selection.',
+                components: [],
                 ephemeral: true,
             });
+            setTimeout(() => reply.delete(), 3000);
         }
     }
 }).toJSON(); 
