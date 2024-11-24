@@ -63,6 +63,9 @@ class DiscordBot extends Client {
             }
         });
 
+        // Instantiate MyCustomStore
+        this.playerStore = new MyCustomStore();
+
         // Parse the LAVALINK_NODES environment variable
         const nodes = process.env.LAVALINK_NODES.split(';').map(node => {
             const [host, port, authorization] = node.split(':');
@@ -388,15 +391,15 @@ class DiscordBot extends Client {
         
         setInterval(() => {
             const uptime = process.uptime();
-            const hours = Math.floor(uptime / 3600);
+            const days = Math.floor(uptime / 86400);
+            const hours = Math.floor((uptime % 86400) / 3600);
             const minutes = Math.floor((uptime % 3600) / 60);
             const seconds = Math.floor(uptime % 60);
-            const formattedUptime = `${hours}h ${minutes}m ${seconds}s`;
+            const formattedUptime = `${days}d ${hours}h ${minutes}m ${seconds}s`;
 
             const statusMessages = [
                 { name: `Use /help to see all commands`, type: 4 },
-                { name: `Uptime | ${formattedUptime}`, type: 4 },
-                { name: `Serving Guilds | ${this.guilds.cache.size}`, type: 4 }
+                { name: `Up | ${formattedUptime}`, type: 4 },
             ];
             this.user.setPresence({ activities: [statusMessages[index]] });
             index = (index + 1) % statusMessages.length;
@@ -424,6 +427,16 @@ class DiscordBot extends Client {
             this.login_attempts++;
             setTimeout(this.connect, 5000);
         }
+    }
+
+    async setSavedPlayerData(playerData) {
+        const guildId = playerData.guildId; // Assuming playerData has guildId
+        const stringifiedData = await this.playerStore.stringify(playerData);
+        await this.playerStore.set(guildId, stringifiedData);
+    }
+
+    async deletedSavedPlayerData(guildId) {
+        await this.playerStore.delete(guildId);
     }
 }
 
