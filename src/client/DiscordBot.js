@@ -118,9 +118,7 @@ class DiscordBot extends Client {
             },
             queueOptions: {
                 maxPreviousTracks: 10,
-                // only needed if you want and need external storage, don't provide if you don't need to
-               queueStore: new MyCustomStore(), 
-                // only needed, if you want to watch changes in the queue via a custom class,
+                queueStore: new MyCustomStore(),
                 //queueChangesWatcher: new myCustomWatcher(client)
             },
             linksAllowed: true,
@@ -180,42 +178,18 @@ class DiscordBot extends Client {
             error(`The Lavalink Node #${node.id} offline`);
         })
         .on("resumed", async (node, payload, players) => {
-            // create players:
             for (const fetchedPlayer of players) {
-                // fetchedPlayer is the live data from lavalink
-                // saved Player data is the config you should save in a database / file or smt
-                const savedPlayerData = await this.getSavedPlayerData(fetchedPlayer.guildId);
-                if (!savedPlayerData) {
-                    await insertDocument('playerData', { guildId: fetchedPlayer.guildId }, fetchedPlayer);
+                const queueData = await this.lavalink.queueStore.get(fetchedPlayer.guildId);
+                if (!queueData) {
+                    await this.lavalink.queueStore.set(fetchedPlayer.guildId, fetchedPlayer.queue);
                 }
-                // if lavalink says the bot got disconnected, we can skip the resuming, or force reconnect whatever you want!, here we choose to not do anything and thus delete the saved player data
-                if (!fetchedPlayer.state.connected) {
-                    console.log("skipping resuming player, because it already disconnected");
-                    await this.deletedSavedPlayerData(fetchedPlayer.guildId);
-                    continue;
-                }
-                // now you can create the player based on the live and saved data
+                
                 const player = this.lavalink.createPlayer({
                     guildId: fetchedPlayer.guildId,
                     node: node.id,
-                    // you need to update the volume of the player by the volume of lavalink which might got decremented by the volume decrementer
-                    volume: this.lavalink.options.playerOptions?.volumeDecrementer
-                        ? Math.round(fetchedPlayer.volume / this.lavalink.options.playerOptions.volumeDecrementer)
-                        : fetchedPlayer.volume,
-                    // all of the following options are needed to be provided by some sort of player saving
-                    voiceChannelId: savedPlayerData.voiceChannelId,
-                    textChannelId: savedPlayerData.textChannelId,
-                    // all of the following options can either be saved too, or you can use pre-defined defaults
-                    selfDeaf: savedPlayerData.options?.selfDeaf || true,
-                    selfMute: savedPlayerData.options?.selfMute || false,
-
-                    applyVolumeAsFilter: savedPlayerData.options.applyVolumeAsFilter,
-                    instaUpdateFiltersFix: savedPlayerData.options.instaUpdateFiltersFix,
-                    vcRegion: savedPlayerData.options.vcRegion,
+                    volume: fetchedPlayer.volume,
                 });
 
-                // player.voice = fetchedPlayer.voice;
-                // normally just player.voice is enough, but if you restart the entire bot, you need to create a new connection, thus call player.connect();
                 await player.connect();
 
                 player.filterManager.data = fetchedPlayer.filters; // override the filters data
@@ -449,37 +423,6 @@ class DiscordBot extends Client {
             error(err);
             this.login_attempts++;
             setTimeout(this.connect, 5000);
-        }
-    }
-
-    // Function to get saved player data
-    getSavedPlayerData = async (guildId) => {
-        try {
-            const data = await checkDocument('playerData', { guildId });
-            return data || []; // Return an empty array if no data found
-        } catch (err) {
-            error(`Failed to get saved player data for guild ${guildId}: ${err.message}`);
-            return null; // Return null in case of error
-        }
-    }
-
-    // Function to delete saved player data
-    deletedSavedPlayerData = async (guildId) => {
-        try {
-            await deleteDocument('playerData', { guildId });
-            // success(`Deleted saved player data for guild ${guildId}`);
-        } catch (err) {
-            error(`Failed to delete saved player data for guild ${guildId}: ${err.message}`);
-        }
-    }
-
-    // Function to set saved player data
-    setSavedPlayerData = async (playerData) => {
-        try {
-            await setDocument('playerData', { guildId: playerData.guildId }, playerData);
-            // success(`Saved player data for guild ${playerData.guildId}`);
-        } catch (err) {
-            error(`Failed to save player data for guild ${playerData.guildId}: ${err.message}`);
         }
     }
 }

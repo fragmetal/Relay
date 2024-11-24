@@ -71,7 +71,12 @@ module.exports = new Component({
                         },
                         {
                             id: client.user.id,
-                            allow: [PermissionFlagsBits.ManageChannels, PermissionFlagsBits.ManagePermissions, PermissionFlagsBits.MoveMembers, PermissionFlagsBits.ViewChannel],
+                            allow: [PermissionFlagsBits.ManageChannels, 
+                                PermissionFlagsBits.ManagePermissions, 
+                                PermissionFlagsBits.MoveMembers, 
+                                PermissionFlagsBits.ViewChannel, 
+                                PermissionFlagsBits.SendMessages
+                            ],
                         },
                     ],
                 });
