@@ -7,8 +7,8 @@ const ComponentsHandler = require("./handler/ComponentsHandler");
 const ComponentsListener = require("./handler/ComponentsListener");
 const EventsHandler = require("./handler/EventsHandler");
 const { LavalinkManager } = require('lavalink-client');
-const {insertDocument, updateDocument, checkDocument, setDocument, deleteDocument } = require('../utils/mongodb');
 const MyCustomStore = require('../utils/CustomClasses');
+
 
 require('dotenv').config();
 
@@ -346,7 +346,8 @@ class DiscordBot extends Client {
             //info(`Player created`);
         })
         .on("playerDestroy", async (player, reason) => {
-            await this.deletedSavedPlayerData(player.guildId);
+            const guildId = player.guild.id;
+            await myCustomStore.delete(guildId);
         })
         .on("playerDisconnect", async (player, voiceChannelId) => {
             //info(`Player disconnected from voice channel: ${voiceChannelId}`);
@@ -358,7 +359,24 @@ class DiscordBot extends Client {
             //error(`Player socket closed: `, payload);
         })
         .on("playerUpdate", async (oldPlayer, newPlayer) => {
-            await this.setSavedPlayerData(newPlayer.toJSON());
+            const guildId = newPlayer.guild.id;
+            
+            try {
+                const queueData = await myCustomStore.get(guildId);
+
+                const updatedQueueData = {
+                    // Example modifications based on newPlayer's state
+                    currentTrack: newPlayer.queue.current, // Update current track
+                    volume: newPlayer.volume, // Update volume
+                    paused: newPlayer.paused, // Update paused state
+                };
+
+                if (JSON.stringify(queueData) !== JSON.stringify(updatedQueueData)) {
+                    await myCustomStore.set(guildId, updatedQueueData);
+                }
+            } catch (err) {
+                console.error(`Error updating player for guild ${guildId}:`, err);
+            }
         })
         .on("playerMuteChange", async (player, muted, serverMuted) => {
             //info(`Player mute state changed. Muted: ${muted}, Server Muted: ${serverMuted}`);
@@ -427,16 +445,6 @@ class DiscordBot extends Client {
             this.login_attempts++;
             setTimeout(this.connect, 5000);
         }
-    }
-
-    async setSavedPlayerData(playerData) {
-        const guildId = playerData.guildId; // Assuming playerData has guildId
-        const stringifiedData = await this.playerStore.stringify(playerData);
-        await this.playerStore.set(guildId, stringifiedData);
-    }
-
-    async deletedSavedPlayerData(guildId) {
-        await this.playerStore.delete(guildId);
     }
 }
 
