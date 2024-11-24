@@ -34,7 +34,7 @@ module.exports = new Component({
                     ephemeral: true,
                 });
             } catch (error) {
-                await interaction.followUp({
+                await interaction.reply({
                     content: 'Error: Unable to toggle track repeat. ' + error.message,
                     ephemeral: true,
                 });
@@ -42,12 +42,12 @@ module.exports = new Component({
         } else if (selectedValue === 'queue') {
             try {
                 await player.setRepeatMode(player.repeatMode === 'queue' ? 'off' : 'queue');
-                await interaction.followUp({
+                await interaction.reply({
                     content: `Looping is now **${player.repeatMode === 'queue' ? 'enabled' : 'disabled'}** for the entire queue!`,
                     ephemeral: true,
                 });
             } catch (error) {
-                await interaction.followUp({
+                await interaction.reply({
                     content: 'Error: Unable to toggle queue repeat. ' + error.message,
                     ephemeral: true,
                 });
@@ -55,18 +55,18 @@ module.exports = new Component({
         } else if (selectedValue === 'off') {
             try {
                 await player.setRepeatMode('off');
-                await interaction.followUp({
+                await interaction.reply({
                     content: 'Looping has been **disabled**.',
                     ephemeral: true,
                 });
             } catch (error) {
-                await interaction.followUp({
+                await interaction.reply({
                     content: 'Error: Unable to disable looping. ' + error.message,
                     ephemeral: true,
                 });
             }
         } else {
-            await interaction.followUp({
+            await interaction.reply({
                 content: 'Invalid selection.',
                 ephemeral: true,
             });
