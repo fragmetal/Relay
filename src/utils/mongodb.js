@@ -53,9 +53,9 @@ const checkDocument = async (collectionName, filter) => {
         const document = await db.collection(collectionName).findOne(filter);
         if (document) {
             //success('Document found');
-        } else {
-            info('Document not found');
-        }
+        } //else {
+        //info('Document not found');
+        //}
         return document;
     } catch (err) {
         error('Failed to check document:', err);

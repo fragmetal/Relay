@@ -1,6 +1,6 @@
 const { info, success, error } = require("../../utils/Console");
 const Event = require("../../structure/Event");
-const { insertDocument, updateDocument, checkDocument } = require("../../utils/mongodb");
+const { updateDocument, checkDocument } = require("../../utils/mongodb");
 const { PermissionFlagsBits, ChannelType } = require('discord.js');
 
 module.exports = new Event({
@@ -27,11 +27,7 @@ module.exports = new Event({
 
                     await channel.delete();
 
-                    await updateDocument('voice_channels', { _id: guildId }, {
-                        $pull: {
-                            temp_channels: { TempChannel: channel.id }
-                        }
-                    });
+                    await updateDocument('voice_channels', { _id: guildId }, { $pull: { temp_channels: { TempChannel: channel.id } } });
                 } catch (err) {
                     console.error(`Failed to delete empty channel: ${channel.name}`, err);
                 }
@@ -71,15 +67,7 @@ module.exports = new Event({
             return error("Failed to create new channel.");
         }
 
-        await updateDocument('voice_channels', { _id: guildId }, {
-            $push: {
-                temp_channels: {
-                    Owner: member.id,
-                    TempChannel: newChannel.id,
-                    Created: new Date()
-                }
-            }
-        });
+        await updateDocument('voice_channels', { _id: guildId }, { $push: { temp_channels: { Owner: member.id, TempChannel: newChannel.id, Created: new Date() } } });
 
         if (!botMember.permissions.has(PermissionFlagsBits.MoveMembers)) {
             return error("The bot does not have permission to move members.");

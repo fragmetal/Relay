@@ -7,22 +7,27 @@ class MyCustomStore {
 
     async get(guildId) {
         const data = await checkDocument('lavalinkqueue', { _id: guildId });
-        return data ? data.queue : null; // Assuming the queue is stored in a field named 'queue'
+
+        const parsedQueue = data ? await this.parse(data.queue) : null;
+        return parsedQueue;
     }
 
-    async set(guildId, stringifiedQueueData) {
-        const document = {
-            _id: guildId,
-            queue: stringifiedQueueData // Assuming you want to store the queue data here
-        };
+    async set(guildId, queueData) {
+        const stringifiedQueueData = await this.stringify(queueData);
 
-        // Check if the document already exists
         const existingDocument = await checkDocument('lavalinkqueue', { _id: guildId });
         if (existingDocument) {
-            // Update the existing document instead of inserting
+            // Check if the queue is a string and convert it to an array if necessary
+            if (typeof existingDocument.queue === 'string') {
+                await updateDocument('lavalinkqueue', { _id: guildId }, { $set: { queue: [] } });
+            }
+            // Now you can safely update the queue
             return await updateDocument('lavalinkqueue', { _id: guildId }, { $set: { queue: stringifiedQueueData } });
         } else {
-            // Insert the new document
+            const document = {
+                _id: guildId,
+                queue: stringifiedQueueData
+            };
             return await insertDocument('lavalinkqueue', document);
         }
     }
@@ -32,9 +37,14 @@ class MyCustomStore {
     }
 
     async parse(stringifiedQueueData) {
-        return typeof stringifiedQueueData === "string"
-            ? JSON.parse(stringifiedQueueData)
-            : stringifiedQueueData;
+        try {
+            return typeof stringifiedQueueData === "string"
+                ? JSON.parse(stringifiedQueueData)
+                : stringifiedQueueData;
+        } catch (error) {
+            console.error('Error parsing queue data:', error);
+            return null;
+        }
     }
 
     async stringify(parsedQueueData) {
@@ -44,7 +54,7 @@ class MyCustomStore {
     }
 
     id(guildId) {
-        return `lavalinkqueue_${guildId}`; // Transform the id if needed
+        return `lavalinkqueue_${guildId}`;
     }
 }
 

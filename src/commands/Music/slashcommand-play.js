@@ -82,9 +82,10 @@ module.exports = new ApplicationCommand({
                 const response = await player.search({ query: playlistUrl, source: src }, interaction.user);
                 if (response.loadType === "playlist") {
                     await player.queue.add(response.tracks);
-                    await interaction.editReply({
+                    const reply = await interaction.editReply({
                         content: `✅ Added [\`${response.tracks.length}\`](<${playlistUrl}>) Tracks from the playlist: \`${response.playlist.name || "Unknown Playlist"}\`.`,
                     });
+                    setTimeout(() => reply.delete(), 5000);
                     if (!player.playing) {
                         await player.connect();
                         await player.play();
@@ -104,9 +105,10 @@ module.exports = new ApplicationCommand({
                 await player.queue.add(response.tracks[0]);
 
                 // Reply with the confirmation message for a single track
-                await interaction.editReply({
+                const reply = await interaction.editReply({
                     content: `✅ Added [\`${response.tracks[0].info.title}\`](<${response.tracks[0].info.uri}>) by \`${response.tracks[0].info.author}\``,
                 });
+                setTimeout(() => reply.delete(), 5000);
             }
 
             // Play the track only if the player is not already playing
