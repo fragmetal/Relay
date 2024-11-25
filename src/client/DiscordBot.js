@@ -282,7 +282,7 @@ class DiscordBot extends Client {
                     );
 
                 // Check if the last message exists and edit it or send a new one
-                if (lastMessage) {
+                if (lastMessage && lastMessage.author.id === this.user.id) {
                     await lastMessage.edit({ content: null, embeds: [embed], components: [row] });
                 } else {
                     await channel.send({ content: null, embeds: [embed], components: [row] });
