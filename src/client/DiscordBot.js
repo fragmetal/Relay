@@ -281,7 +281,6 @@ class DiscordBot extends Client {
                             .setStyle(ButtonStyle.Danger)
                     );
 
-                // Check if the last message exists and is authored by the bot, otherwise send a new one
                 if (lastMessage) {
                     try {
                         await lastMessage.edit({ content: null, embeds: [embed], components: [row] });
@@ -318,7 +317,7 @@ class DiscordBot extends Client {
                         .setDescription("The music queue has ended.")
                         .setTimestamp();
 
-                    await lastMessage.edit({ embeds: [embed], components: [] });
+                    await lastMessage.edit({ content: null, embeds: [embed], components: [] });
                     setTimeout(() => lastMessage.delete(), 3000);
                 }
             }
