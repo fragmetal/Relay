@@ -7,7 +7,7 @@ const ComponentsHandler = require("./handler/ComponentsHandler");
 const ComponentsListener = require("./handler/ComponentsListener");
 const EventsHandler = require("./handler/EventsHandler");
 const { LavalinkManager } = require('lavalink-client');
-const MyCustomStore = require('../utils/CustomClasses');
+//const MyCustomStore = require('../utils/CustomClasses');
 
 require('dotenv').config();
 
@@ -30,7 +30,7 @@ class DiscordBot extends Client {
     commands_handler = new CommandsHandler(this);
     components_handler = new ComponentsHandler(this);
     events_handler = new EventsHandler(this);
-    myCustomStore = new MyCustomStore();
+    //myCustomStore = new MyCustomStore();
     
     constructor() {
         super({
@@ -74,11 +74,11 @@ class DiscordBot extends Client {
             };
         });
 
-        const previouslyUsedSessions = new Map();
+        // const previouslyUsedSessions = new Map();
 
         this.lavalink = new LavalinkManager({
             nodes: nodes,
-            sessionId: previouslyUsedSessions.get("node"),
+            // sessionId: previouslyUsedSessions.get("node"),
             requestSignalTimeoutMS: 3000,
             closeOnError: true,
             heartBeatInterval: 30_000,
@@ -128,7 +128,7 @@ class DiscordBot extends Client {
             },
             queueOptions: {
                 maxPreviousTracks: 10,
-                queueStore: this.myCustomStore,
+                //queueStore: this.myCustomStore,
                 //queueChangesWatcher: new myCustomWatcher(client)
             },
             linksAllowed: true,
@@ -166,7 +166,7 @@ class DiscordBot extends Client {
         // Lavalink node event listeners
         this.lavalink.nodeManager.on("connect", async (node) => {
             node.updateSession(true, 360e3);
-            previouslyUsedSessions.set(node.id, node.sessionId)
+            // previouslyUsedSessions.set(node.id, node.sessionId)
             success(`The Lavalink Node #${node.id} connected`);
         })
         .on("disconnect", async (node, _reason) => {
@@ -188,34 +188,34 @@ class DiscordBot extends Client {
             error(`The Lavalink Node #${node.id} offline`);
         })
         .on("resumed", async (node, payload, players) => {
-            for (const fetchedPlayer of players) {
-                const queueData = await this.lavalink.queueStore.get(fetchedPlayer.guildId);
-                if (!queueData) {
-                    await this.lavalink.queueStore.set(fetchedPlayer.guildId, fetchedPlayer.queue);
-                }
+            // for (const fetchedPlayer of players) {
+            //     const queueData = await this.lavalink.queueStore.get(fetchedPlayer.guildId);
+            //     if (!queueData) {
+            //         await this.lavalink.queueStore.set(fetchedPlayer.guildId, fetchedPlayer.queue);
+            //     }
                 
-                const player = this.lavalink.createPlayer({
-                    guildId: fetchedPlayer.guildId,
-                    node: node.id,
-                    volume: fetchedPlayer.volume,
-                });
+            //     const player = this.lavalink.createPlayer({
+            //         guildId: fetchedPlayer.guildId,
+            //         node: node.id,
+            //         volume: fetchedPlayer.volume,
+            //     });
 
-                await player.connect();
+            //     await player.connect();
 
-                player.filterManager.data = fetchedPlayer.filters; // override the filters data
-                await player.queue.utils.sync(true, false); // get the queue data including the current track (for the requester)
-                // override the current track with the data from lavalink
-                if (fetchedPlayer.track) player.queue.current = this.lavalink.utils.buildTrack(fetchedPlayer.track, player.queue.current?.requester || this.user);
-                // override the position of the player
-                player.lastPosition = fetchedPlayer.state.position;
-                player.lastPositionChange = Date.now();
-                // you can also override the ping of the player, or wait about 30s till it's done automatically
-                player.ping.lavalink = fetchedPlayer.state.ping;
-                // important to have skipping work correctly later
-                player.paused = fetchedPlayer.paused;
-                player.playing = !fetchedPlayer.paused && !!fetchedPlayer.track;
-                // That's about it
-            }
+            //     player.filterManager.data = fetchedPlayer.filters; // override the filters data
+            //     await player.queue.utils.sync(true, false); // get the queue data including the current track (for the requester)
+            //     // override the current track with the data from lavalink
+            //     if (fetchedPlayer.track) player.queue.current = this.lavalink.utils.buildTrack(fetchedPlayer.track, player.queue.current?.requester || this.user);
+            //     // override the position of the player
+            //     player.lastPosition = fetchedPlayer.state.position;
+            //     player.lastPositionChange = Date.now();
+            //     // you can also override the ping of the player, or wait about 30s till it's done automatically
+            //     player.ping.lavalink = fetchedPlayer.state.ping;
+            //     // important to have skipping work correctly later
+            //     player.paused = fetchedPlayer.paused;
+            //     player.playing = !fetchedPlayer.paused && !!fetchedPlayer.track;
+            //     // That's about it
+            // }
         });
         
         // Example of handling player events
@@ -281,9 +281,17 @@ class DiscordBot extends Client {
                             .setStyle(ButtonStyle.Danger)
                     );
 
-                // Check if the last message exists and edit it or send a new one
-                if (lastMessage && lastMessage.author.id === this.user.id) {
-                    await lastMessage.edit({ content: null, embeds: [embed], components: [row] });
+                // Check if the last message exists and is authored by the bot, otherwise send a new one
+                if (lastMessage) {
+                    try {
+                        await lastMessage.edit({ content: null, embeds: [embed], components: [row] });
+                    } catch (err) {
+                        if (err.code === 50005) {
+                            await channel.send({ content: null, embeds: [embed], components: [row] });
+                        } else {
+                            throw err;
+                        }
+                    }
                 } else {
                     await channel.send({ content: null, embeds: [embed], components: [row] });
                 }
