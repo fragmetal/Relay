@@ -327,9 +327,9 @@ class DiscordBot extends Client {
             //info(`Player created`);
         })
         .on("playerDestroy", async (player, reason) => {
-            if (player.guildId) {
-                await this.myCustomStore.delete(player.guildId);
-            }
+            // if (player.guildId) {
+            //     await this.myCustomStore.delete(player.guildId);
+            // }
         })
         .on("playerDisconnect", async (player, voiceChannelId) => {
             //info(`Player disconnected from voice channel: ${voiceChannelId}`);
