@@ -341,9 +341,9 @@ class DiscordBot extends Client {
             //error(`Player socket closed: `, payload);
         })
         .on("playerUpdate", async (oldPlayer, newPlayer) => {
-            if (newPlayer.guildId) {
-                await this.myCustomStore.set(newPlayer.guildId, newPlayer.queue);
-            }
+            // if (newPlayer.guildId) {
+            //     await this.myCustomStore.set(newPlayer.guildId, newPlayer.queue);
+            // }
         })
         .on("playerMuteChange", async (player, muted, serverMuted) => {
             //info(`Player mute state changed. Muted: ${muted}, Server Muted: ${serverMuted}`);
