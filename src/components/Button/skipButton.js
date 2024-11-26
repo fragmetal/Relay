@@ -24,11 +24,15 @@ module.exports = new Component({
         }
 
         const currentTrack = player.queue.current;
-        const requesterId = currentTrack ? currentTrack.requester.id : null;
-        const userId = interaction.user.id;
-        const requesterChannel = currentTrack && currentTrack.requester && currentTrack.requester.voice ? currentTrack.requester.voice.channel : null;
+        if (!currentTrack) {
+            const reply = await interaction.reply({ content: 'No track is currently playing.', ephemeral: true });
+            return setTimeout(() => reply.delete(), 3000);
+        }
 
-        if (userId === requesterId || !requesterChannel) {
+        const requesterId = currentTrack?.requester?.id;
+        const userId = interaction.user.id;
+
+        if (userId === requesterId) {
             await player.skip(0, true);
             await interaction.update({ content: '✅ Track skipped!', ephemeral: true });
             return;
