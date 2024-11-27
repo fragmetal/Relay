@@ -19,7 +19,7 @@ module.exports = new Component({
         }
 
         try {
-            await player.stopPlaying(true, false); // Stop playing and clear the queue
+            await player.stopPlaying(true, true); // Stop playing and clear the queue
             await interaction.update({ content: '✅ Stopped the music and cleared the queue.', ephemeral: true });
         } catch (error) {
             await interaction.update({ content: '❌ Error: Unable to stop the music. ' + error.message, ephemeral: true });

@@ -317,7 +317,7 @@ class DiscordBot extends Client {
                         .setDescription("The music queue has ended.")
                         .setTimestamp();
 
-                    await lastMessage.edit({ content: null, embeds: [embed], components: [] });
+                    await lastMessage.edit({ embeds: [embed], components: [] });
                     setTimeout(() => lastMessage.delete(), 3000);
                 }
             }

@@ -21,17 +21,17 @@ module.exports = new Component({
 
         if (selectedValue === 'track') {
             try {
-                await player.setRepeatMode(player.repeatMode === 'track' ? 'off' : 'track');
+                await player.setRepeatMode('track');
                 const reply = await interaction.update({
-                    content: `Looping is now **${player.repeatMode === 'track' ? 'enabled' : 'disabled'}** for the current track!`,
+                    content: 'Looping is now **enabled** for the current track!',
                     components: [],
                     ephemeral: true,
                 });
                 setTimeout(() => reply.delete(), 3000);
                 
             } catch (error) {
-                const reply = await interaction.reply({
-                    content: 'Error: Unable to toggle track repeat. ' + error.message,
+                const reply = await interaction.update({
+                    content: 'Error: Unable to enable track repeat. ' + error.message,
                     components: [],
                     ephemeral: true,
                 });
@@ -39,9 +39,9 @@ module.exports = new Component({
             }
         } else if (selectedValue === 'queue') {
             try {
-                await player.setRepeatMode(player.repeatMode === 'queue' ? 'off' : 'queue');
+                await player.setRepeatMode('queue');
                 const reply = await interaction.update({
-                    content: `Looping is now **${player.repeatMode === 'queue' ? 'enabled' : 'disabled'}** for the entire queue!`,
+                    content: 'Looping is now **enabled** for the entire queue!',
                     components: [],
                     ephemeral: true,
                 });
@@ -65,7 +65,7 @@ module.exports = new Component({
                 setTimeout(() => reply.delete(), 3000);
                 
             } catch (error) {
-                const reply = await interaction.reply({
+                const reply = await interaction.update({
                     content: 'Error: Unable to disable looping. ' + error.message,
                     components: [],
                     ephemeral: true,
