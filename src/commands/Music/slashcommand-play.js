@@ -78,21 +78,19 @@ module.exports = new ApplicationCommand({
 
             if (playlistLink) {
                 const response = await player.search({ query: playlistLink, source: source }, interaction.user);
-                console.log(playlistLink);
-                console.log(response);
 
                 if (!response || response.loadType === 'empty' || !response.tracks.length) {
                     return interaction.editReply({ content: `No Tracks found in the playlist.`, ephemeral: true });
                 }
 
-                if (response.loadType === 'playlist') {
+                if (response.loadType === 'playlist' && response.tracks.length > 0) {
                     await player.queue.add(response.tracks);
                     const reply = await interaction.editReply({
                         content: `✅ Added [\`${response.tracks.length}\`](<${playlistLink}>) Tracks from the playlist: \`${response.playlist?.name || "Unknown Playlist"}\`.`,
                     });
                     setTimeout(() => reply.delete(), 5000);
                 } else {
-                    return interaction.editReply({ content: `The provided link is not a playlist.`, ephemeral: true });
+                    return interaction.editReply({ content: `The provided link is not a valid playlist or contains no tracks.`, ephemeral: true });
                 }
 
                 if (!player.playing) {
