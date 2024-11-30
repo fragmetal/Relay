@@ -34,40 +34,39 @@ module.exports = new ApplicationCommand({
     run: async (client, interaction) => {
         try {
             const vcId = interaction.member.voice.channelId;
-            if (!vcId) return interaction.reply({ ephemeral: true, content: `Join a voice Channel` });
+            if (!vcId) {
+                return interaction.reply({ ephemeral: true, content: `Join a voice Channel` });
+            }
 
-            const song = interaction.options.getString('search');
-            const playlistUrl = interaction.options.getString('playlist');
+            const searchTerm = interaction.options.getString('search');
+            const playlistLink = interaction.options.getString('playlist');
 
-            // Check if the searching input is valid
-            if (!song && !playlistUrl) {
+            if (!searchTerm && !playlistLink) {
                 return interaction.reply({ content: `Please provide a valid search term or URL.`, ephemeral: true });
             }
 
-            // Acknowledge the interaction immediately
             await interaction.deferReply();
 
-            // Automatically determine the source based on the searching input
-            const cleanedQuery = song ? song.replace(/\s+/g, '') : playlistUrl;
-            const isUrl = cleanedQuery && /^https?:\/\/[^\s]+$/.test(cleanedQuery);
-            let src;
-
-            // Automatically detect the source based on the URL
-            if (isUrl) {
-                if (cleanedQuery.includes("youtube.com") || cleanedQuery.includes("youtu.be")) {
-                    src = "ytsearch";
-                } else if (cleanedQuery.includes("music.youtube.com")) {
-                    src = "ytmsearch";
-                } else if (cleanedQuery.includes("spotify.com")) {
-                    src = "spsearch";
-                } else if (cleanedQuery.includes("soundcloud.com")) {
-                    src = "scsearch";
+            const query = searchTerm ? searchTerm.trim() : playlistLink.trim();
+            const isValidUrl = /^https?:\/\/[^\s]+$/.test(query);
+            let source;
+            
+            if (isValidUrl) {
+                if (query.includes("youtube.com") || query.includes("youtu.be")) {
+                    source = "ytsearch";
+                } else if (query.includes("music.youtube.com")) {
+                    source = "ytmsearch";
+                } else if (query.includes("spotify.com")) {
+                    source = "spsearch";
+                } else if (query.includes("soundcloud.com")) {
+                    source = "scsearch";
+                } else {
+                    return interaction.editReply({ content: `Unsupported URL source.`, ephemeral: true });
                 }
             } else {
-                src = "ytsearch";
+                source = "ytsearch";
             }
 
-            // Logic to play the song using Lavalink
             const player = client.lavalink.getPlayer(interaction.guildId) || await client.lavalink.createPlayer({
                 guildId: interaction.guildId,
                 voiceChannelId: vcId,
@@ -77,46 +76,47 @@ module.exports = new ApplicationCommand({
                 volume: client.defaultVolume,
             });
 
-            // If a playlist URL is provided, handle it directly
-            if (playlistUrl) {
-                const response = await player.search({ query: playlistUrl.trim(), source: src }, interaction.user);
-                if (response.loadType === "playlist") {
+            if (playlistLink) {
+                const response = await player.search({ query: playlistLink, source: source }, interaction.user);
+                console.log(playlistLink);
+                console.log(response);
+
+                if (!response || response.loadType === 'empty' || !response.tracks.length) {
+                    return interaction.editReply({ content: `No Tracks found in the playlist.`, ephemeral: true });
+                }
+
+                if (response.loadType === 'playlist') {
                     await player.queue.add(response.tracks);
                     const reply = await interaction.editReply({
-                        content: `✅ Added [\`${response.tracks.length}\`](<${playlistUrl}>) Tracks from the playlist: \`${response.playlist.name || "Unknown Playlist"}\`.`,
+                        content: `✅ Added [\`${response.tracks.length}\`](<${playlistLink}>) Tracks from the playlist: \`${response.playlist?.name || "Unknown Playlist"}\`.`,
                     });
                     setTimeout(() => reply.delete(), 5000);
-                    if (!player.playing) {
-                        await player.connect();
-                        await player.play();
-                    }
-                    return;
+                } else {
+                    return interaction.editReply({ content: `The provided link is not a playlist.`, ephemeral: true });
                 }
-            }
 
-            // Search for tracks based on the user's input if no playlist URL is provided
-            if (song) {
-                const response = await player.search({ query: song.trim(), source: src }, interaction.user);
-                
-                // Check if the response is a playlist
+                if (!player.playing) {
+                    await player.connect();
+                    await player.play();
+                }
+                return;
+            } else if (searchTerm) {
+                const response = await player.search({ query: searchTerm.trim(), source: source }, interaction.user);
+
                 if (!response || !response.tracks.length) {
                     return interaction.editReply({ content: `No Tracks found`, ephemeral: true });
                 } else {
-                    // If it's not a playlist, handle it as a single track
                     await player.queue.add(response.tracks[0]);
-
-                    // Reply with the confirmation message for a single track
                     const reply = await interaction.editReply({
                         content: `✅ Added [\`${response.tracks[0].info.title}\`](<${response.tracks[0].info.uri}>) by \`${response.tracks[0].info.author}\``,
                     });
                     setTimeout(() => reply.delete(), 5000);
                 }
-            }
 
-            // Play the track only if the player is not already playing
-            if (!player.playing) {
-                await player.connect();
-                await player.play();
+                if (!player.playing) {
+                    await player.connect();
+                    await player.play();
+                }
             }
         } catch (error) {
             console.error('Error handling interaction:', error);

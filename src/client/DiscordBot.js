@@ -281,18 +281,18 @@ class DiscordBot extends Client {
                             .setStyle(ButtonStyle.Danger)
                     );
 
-                if (lastMessage) {
-                    try {
+                try {
+                    if (lastMessage) {
                         await lastMessage.edit({ content: null, embeds: [embed], components: [row] });
-                    } catch (err) {
-                        if (err.code === 50005) {
-                            await channel.send({ content: null, embeds: [embed], components: [row] });
-                        } else {
-                            throw err;
-                        }
+                    } else {
+                        await channel.send({ content: null, embeds: [embed], components: [row] });
                     }
-                } else {
-                    await channel.send({ content: null, embeds: [embed], components: [row] });
+                } catch (err) {
+                    if (err.code === 50013) { // Missing Permissions
+                        console.error(`Missing permissions to send messages in channel: ${channel.id}`);
+                    } else {
+                        throw err;
+                    }
                 }
             }
         })

@@ -21,7 +21,7 @@ module.exports = new Component({
         const existingDocument = await checkDocument('voice_channels', { _id: interaction.guild.id });
 
         if (!existingDocument) {
-            return await interaction.editReply({ content: 'No configuration found for this server.', components: [] }); // Remove buttons
+            return await interaction.editReply({ content: 'No configuration found for this server.', components: [] });
         }
 
         const channelsToDelete = [
@@ -40,6 +40,6 @@ module.exports = new Component({
 
         await Promise.all(deletePromises);
         await deleteDocument('voice_channels', { _id: interaction.guild.id });
-        await interaction.editReply({ content: 'All specified channels deleted successfully.', components: [] }); // Remove buttons
+        await interaction.editReply({ content: 'All specified channels deleted successfully.', components: [] });
     }
 }).toJSON(); 

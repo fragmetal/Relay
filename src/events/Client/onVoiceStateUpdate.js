@@ -60,7 +60,30 @@ module.exports = new Event({
             name: channelName,
             type: ChannelType.GuildVoice,
             parent: categoryChannel,
-            permissionOverwrites: [],
+            permissionOverwrites: [
+                {
+                    id: client.user.id,
+                    allow: [
+                        PermissionFlagsBits.ManageChannels,
+                        PermissionFlagsBits.SendMessages,
+                        PermissionFlagsBits.ViewChannel,
+                        PermissionFlagsBits.ReadMessageHistory,
+                        PermissionFlagsBits.EmbedLinks,
+                        PermissionFlagsBits.AttachFiles,
+                        PermissionFlagsBits.UseExternalEmojis,
+                        PermissionFlagsBits.AddReactions,
+                        PermissionFlagsBits.MoveMembers
+                    ],
+                },
+                {
+                    id: newState.guild.roles.everyone.id,
+                    allow: [
+                        PermissionFlagsBits.ViewChannel,
+                        PermissionFlagsBits.Connect,
+                        PermissionFlagsBits.Speak
+                    ],
+                }
+            ],
         });
 
         if (!newChannel) {

@@ -15,7 +15,7 @@ module.exports = new Event({
             const settings = await checkDocument('voice_channels', { _id: guildId });
 
             if (!settings || !settings.vc_dashboard) {
-                console.log(`No vc_dashboard found for guild: ${guildId}`);
+                //console.log(`No vc_dashboard found for guild: ${guildId}`);
                 return;
             }
 

@@ -27,9 +27,9 @@ module.exports = new Component({
             return await interaction.editReply({ content: "Failed to fetch bot member data." });
         }
 
-        // Check if the bot has the MANAGE_CHANNELS permission
+        // Check if the bot has the MANAGE_CHANNELS permission in the guild
         if (!botMember.permissions.has(PermissionFlagsBits.ManageChannels)) {
-            return await interaction.editReply({ content: "I do not have permission to manage channels." });
+            return await interaction.editReply({ content: "I do not have permission to manage channels in this guild." });
         }
 
         // Logic for creating channels
@@ -45,7 +45,12 @@ module.exports = new Component({
                     },
                     {
                         id: client.user.id,
-                        allow: [PermissionFlagsBits.ManageChannels, PermissionFlagsBits.MoveMembers, PermissionFlagsBits.ViewChannel],
+                        allow: [
+                            PermissionFlagsBits.ManageChannels,
+                            PermissionFlagsBits.MoveMembers,
+                            PermissionFlagsBits.ViewChannel,
+                            PermissionFlagsBits.SendMessages
+                        ],
                     },
                 ],
             });
@@ -71,10 +76,10 @@ module.exports = new Component({
                         },
                         {
                             id: client.user.id,
-                            allow: [PermissionFlagsBits.ManageChannels, 
-                                PermissionFlagsBits.ManagePermissions, 
-                                PermissionFlagsBits.MoveMembers, 
-                                PermissionFlagsBits.ViewChannel, 
+                            allow: [
+                                PermissionFlagsBits.ManageChannels,
+                                PermissionFlagsBits.MoveMembers,
+                                PermissionFlagsBits.ViewChannel,
                                 PermissionFlagsBits.SendMessages
                             ],
                         },
@@ -94,8 +99,11 @@ module.exports = new Component({
             const saveResult = await insertDocument('voice_channels', dbDocument);
             await interaction.editReply({ content: `Channels created successfully. Save result ID: ${saveResult.insertedId}.`, components: [] });
         } catch (error) {
-            console.error('Error creating channels:', error);
-            await interaction.editReply({ content: 'Failed to create channels. Please try again.', components: [] });
+            if (error.code === 50013) {
+                await interaction.editReply({ content: 'Failed to create channels due to missing permissions. Please ensure the bot has the necessary permissions.', components: [] });
+            } else {
+                await interaction.editReply({ content: 'Failed to create channels. Please try again.', components: [] });
+            }
         }
     }
 }).toJSON(); 
