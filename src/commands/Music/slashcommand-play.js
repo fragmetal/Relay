@@ -49,7 +49,7 @@ module.exports = new ApplicationCommand({
 
             // Automatically determine the source based on the searching input
             const cleanedQuery = song ? song.replace(/\s+/g, '') : playlistUrl;
-            const isUrl = /^https?:\/\/[^\s]+$/.test(cleanedQuery);
+            const isUrl = cleanedQuery && /^https?:\/\/[^\s]+$/.test(cleanedQuery);
             let src;
 
             // Automatically detect the source based on the URL
@@ -64,7 +64,7 @@ module.exports = new ApplicationCommand({
                     src = "scsearch";
                 }
             } else {
-                src = "ytmsearch";
+                src = "ytsearch";
             }
 
             // Logic to play the song using Lavalink
