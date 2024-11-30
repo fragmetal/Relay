@@ -77,7 +77,7 @@ module.exports = new ApplicationCommand({
             });
 
             if (playlistLink) {
-                const response = await player.search({ query: playlistLink, source: source }, interaction.user);
+                const response = await player.search({ query: playlistLink.trim(), source: source }, interaction.user);
 
                 if (!response || response.loadType === 'empty' || !response.tracks.length) {
                     return interaction.editReply({ content: `No Tracks found in the playlist.`, ephemeral: true });
