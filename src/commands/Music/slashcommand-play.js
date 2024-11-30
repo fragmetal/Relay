@@ -79,7 +79,7 @@ module.exports = new ApplicationCommand({
 
             // If a playlist URL is provided, handle it directly
             if (playlistUrl) {
-                const response = await player.search({ query: playlistUrl, source: src }, interaction.user);
+                const response = await player.search({ query: playlistUrl.trim(), source: src }, interaction.user);
                 if (response.loadType === "playlist") {
                     await player.queue.add(response.tracks);
                     const reply = await interaction.editReply({
@@ -95,20 +95,22 @@ module.exports = new ApplicationCommand({
             }
 
             // Search for tracks based on the user's input if no playlist URL is provided
-            const response = await player.search({ query: song, source: src }, interaction.user);
-            
-            // Check if the response is a playlist
-            if (!response || !response.tracks.length) {
-                return interaction.editReply({ content: `No Tracks found`, ephemeral: true });
-            } else {
-                // If it's not a playlist, handle it as a single track
-                await player.queue.add(response.tracks[0]);
+            if (song) {
+                const response = await player.search({ query: song.trim(), source: src }, interaction.user);
+                
+                // Check if the response is a playlist
+                if (!response || !response.tracks.length) {
+                    return interaction.editReply({ content: `No Tracks found`, ephemeral: true });
+                } else {
+                    // If it's not a playlist, handle it as a single track
+                    await player.queue.add(response.tracks[0]);
 
-                // Reply with the confirmation message for a single track
-                const reply = await interaction.editReply({
-                    content: `✅ Added [\`${response.tracks[0].info.title}\`](<${response.tracks[0].info.uri}>) by \`${response.tracks[0].info.author}\``,
-                });
-                setTimeout(() => reply.delete(), 5000);
+                    // Reply with the confirmation message for a single track
+                    const reply = await interaction.editReply({
+                        content: `✅ Added [\`${response.tracks[0].info.title}\`](<${response.tracks[0].info.uri}>) by \`${response.tracks[0].info.author}\``,
+                    });
+                    setTimeout(() => reply.delete(), 5000);
+                }
             }
 
             // Play the track only if the player is not already playing
