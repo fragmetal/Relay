@@ -7,7 +7,7 @@ const ComponentsHandler = require("./handler/ComponentsHandler");
 const ComponentsListener = require("./handler/ComponentsListener");
 const EventsHandler = require("./handler/EventsHandler");
 const { LavalinkManager } = require('lavalink-client');
-//const MyCustomStore = require('../utils/CustomClasses');
+const MyCustomStore = require('../utils/CustomClasses');
 
 require('dotenv').config();
 
@@ -30,7 +30,7 @@ class DiscordBot extends Client {
     commands_handler = new CommandsHandler(this);
     components_handler = new ComponentsHandler(this);
     events_handler = new EventsHandler(this);
-    //myCustomStore = new MyCustomStore();
+    myCustomStore = new MyCustomStore();
     
     constructor() {
         super({
@@ -74,11 +74,9 @@ class DiscordBot extends Client {
             };
         });
 
-        // const previouslyUsedSessions = new Map();
-
         this.lavalink = new LavalinkManager({
             nodes: nodes,
-            // sessionId: previouslyUsedSessions.get("node"),
+            sessionId: "RelaySession",
             requestSignalTimeoutMS: 3000,
             closeOnError: true,
             heartBeatInterval: 30_000,
@@ -102,7 +100,7 @@ class DiscordBot extends Client {
         
                 applyVolumeAsFilter: false,
                 clientBasedPositionUpdateInterval: 50, // in ms to up-calc player.position
-                defaultSearchPlatform: "ytmsearch",
+                defaultSearchPlatform: "ytsearch",
                 volumeDecrementer: 0.30, // on client 100% == on lavalink 30%
                 onDisconnect: {
                     autoReconnect: true, // automatically attempts a reconnect, if the bot disconnects from the voice channel, if it fails, it get's destroyed
@@ -115,20 +113,20 @@ class DiscordBot extends Client {
                 },
                 useUnresolvedData: true,
                 equalizer: [
-                    { band: 0, gain: 0.6 }, // 60 Hz
-                    { band: 1, gain: 0.5 }, // 170 Hz
-                    { band: 2, gain: 0.4 }, // 310 Hz
-                    { band: 3, gain: 0.3 }, // 600 Hz
-                    { band: 4, gain: 0.2 }, // 1 kHz
-                    { band: 5, gain: -0.1 }, // 3 kHz
-                    { band: 6, gain: -0.2 }, // 6 kHz
-                    { band: 7, gain: -0.3 }, // 12 kHz
-                    { band: 8, gain: -0.4 }, // 14 kHz
+                    { band: 0, gain: 0.3 }, // 60 Hz - Boost for good bass
+                    { band: 1, gain: 0.5 }, // 170 Hz - Boost for good bass
+                    { band: 2, gain: 0.6 }, // 310 Hz
+                    { band: 3, gain: 0.4 }, // 600 Hz
+                    { band: 4, gain: 0.0 }, // 1 kHz
+                    { band: 5, gain: 0.2 }, // 3 kHz - Boost for vocal crispness
+                    { band: 6, gain: 0.4 }, // 6 kHz - Boost for vocal crispness
+                    { band: 7, gain: 0.5 }, // 12 kHz - Boost for vocal crispness
+                    { band: 8, gain: 0.6 }, // 14 kHz - Boost for vocal crispness
                 ],
             },
             queueOptions: {
                 maxPreviousTracks: 10,
-                //queueStore: this.myCustomStore,
+                queueStore: this.myCustomStore,
                 //queueChangesWatcher: new myCustomWatcher(client)
             },
             linksAllowed: true,
@@ -166,8 +164,30 @@ class DiscordBot extends Client {
         // Lavalink node event listeners
         this.lavalink.nodeManager.on("connect", async (node) => {
             node.updateSession(true, 360e3);
-            // previouslyUsedSessions.set(node.id, node.sessionId)
             success(`The Lavalink Node #${node.id} connected`);
+            // for (const guild of this.guilds.cache.values()) {
+            //     const queueData = await this.myCustomStore.get(guild.id);
+            //     if (queueData) {
+            //         const player = this.lavalink.createPlayer({
+            //             guildId: guild.id,
+            //             voiceChannelId: queueData.voiceChannelId,
+            //             textChannelId: queueData.textChannelId,
+            //             selfDeaf: true,
+            //             selfMute: false,
+            //             volume: this.defaultVolume,
+            //             sessionId: queueData.sessionId
+            //         });
+        
+            //         player.queue.add(queueData.queue);
+            //         player.queue.current = queueData.currentTrack;
+            //         player.lastPosition = queueData.position;
+            //         player.lastPositionChange = Date.now();
+        
+            //         await player.connect();
+            //         await player.seek(queueData.position);
+            //         await player.play(queueData.currentTrack);
+            //     }
+            // }
         })
         .on("disconnect", async (node, _reason) => {
             error(`The Lavalink Node #${node.id} disconnected. reconnecting...`);
@@ -188,41 +208,22 @@ class DiscordBot extends Client {
             error(`The Lavalink Node #${node.id} offline`);
         })
         .on("resumed", async (node, payload, players) => {
-            // for (const fetchedPlayer of players) {
-            //     const queueData = await this.lavalink.queueStore.get(fetchedPlayer.guildId);
-            //     if (!queueData) {
-            //         await this.lavalink.queueStore.set(fetchedPlayer.guildId, fetchedPlayer.queue);
-            //     }
-                
-            //     const player = this.lavalink.createPlayer({
-            //         guildId: fetchedPlayer.guildId,
-            //         node: node.id,
-            //         volume: fetchedPlayer.volume,
-            //     });
-
-            //     await player.connect();
-
-            //     player.filterManager.data = fetchedPlayer.filters; // override the filters data
-            //     await player.queue.utils.sync(true, false); // get the queue data including the current track (for the requester)
-            //     // override the current track with the data from lavalink
-            //     if (fetchedPlayer.track) player.queue.current = this.lavalink.utils.buildTrack(fetchedPlayer.track, player.queue.current?.requester || this.user);
-            //     // override the position of the player
-            //     player.lastPosition = fetchedPlayer.state.position;
-            //     player.lastPositionChange = Date.now();
-            //     // you can also override the ping of the player, or wait about 30s till it's done automatically
-            //     player.ping.lavalink = fetchedPlayer.state.ping;
-            //     // important to have skipping work correctly later
-            //     player.paused = fetchedPlayer.paused;
-            //     player.playing = !fetchedPlayer.paused && !!fetchedPlayer.track;
-            //     // That's about it
-            // }
+            info(`The Lavalink Node #${node.id} resumed`);
         });
         
         // Example of handling player events
         this.lavalink.on("trackStart", async (player, track, payload) => {
             const channel = this.channels.cache.get(player.textChannelId);
-            const avatarURL = track?.requester?.displayAvatarURL?.() || this.user.displayAvatarURL?.();
-            
+            const user = this.users.cache.get(track.requester) || await this.users.fetch(track.requester).catch(() => null);
+            const avatarURL = user ? user.displayAvatarURL() : this.user.displayAvatarURL();
+
+            // Save current track information to persistent storage
+            await this.myCustomStore.set('currentTrack', {
+                guildId: player.guildId,
+                trackInfo: track.info,
+                requester: track.requester
+            });
+
             if (channel?.isTextBased()) {
                 const messages = await channel.messages.fetch({ limit: 10 });
                 const lastMessage = messages.find(msg => msg.embeds.length > 0 && msg.author.id === this.user.id);
@@ -242,12 +243,12 @@ class DiscordBot extends Client {
                             `> - **Author:** ${track?.info?.author}`,
                             `> - **Duration:** ${formatDuration(track?.info?.duration || 0)} | Ends <t:${Math.floor((Date.now() + (track?.info?.duration || 0)) / 1000)}:R>`,
                             `> - **Source:** ${track?.info?.sourceName}`,
-                            `> - **Requester:** <@${track?.requester?.id}>`,
+                            `> - **Requester:** <@${track?.requester}>`,
                             track?.pluginInfo?.clientData?.fromAutoplay ? `> *From Autoplay* ✅` : undefined
                         ].filter(Boolean).join("\n").substring(0, 4096)
                     )
                     .setFooter({
-                        text: `Requested by ${(track?.requester?.username || 'Unknown')}`,
+                        text: `Requested by ${(user?.username || 'Unknown')}`,
                         iconURL: /^https?:\/\//.test(avatarURL || "") ? avatarURL : undefined,
                     })
                     .setTimestamp();
@@ -323,26 +324,26 @@ class DiscordBot extends Client {
             }
         })
         .on("playerCreate", async (player) => {
-            //info(`Player created`);
         })
-        .on("playerDestroy", async (player, reason) => {
-            // if (player.guildId) {
-            //     await this.myCustomStore.delete(player.guildId);
-            // }
+        .on("playerDestroy", async (player) => {
         })
         .on("playerDisconnect", async (player, voiceChannelId) => {
-            //info(`Player disconnected from voice channel: ${voiceChannelId}`);
         })
         .on("playerMove", async (player, oldChannelId, newChannelId) => {
-            //info(`Player moved from channel ${oldChannelId} to ${newChannelId}`);
         })
         .on("playerSocketClosed", async (player, payload) => {
-            //error(`Player socket closed: `, payload);
+            error(`Player socket closed: `, payload);
         })
         .on("playerUpdate", async (oldPlayer, newPlayer) => {
-            // if (newPlayer.guildId) {
-            //     await this.myCustomStore.set(newPlayer.guildId, newPlayer.queue);
-            // }
+            if (newPlayer.guildId) {
+                const voiceChannel = this.channels.cache.get(newPlayer.voiceChannelId);
+                if (voiceChannel && voiceChannel.members.size === 1) { // Only the bot is in the voice channel
+                    await newPlayer.pause();
+                } else if (voiceChannel && voiceChannel.members.size > 1 && newPlayer.paused) { // Someone joined the voice channel and the player is paused
+                    await newPlayer.resume();
+                }
+                await this.updateQueueData(newPlayer);
+            }
         })
         .on("playerMuteChange", async (player, muted, serverMuted) => {
             //info(`Player mute state changed. Muted: ${muted}, Server Muted: ${serverMuted}`);
@@ -366,7 +367,7 @@ class DiscordBot extends Client {
             //info(`Player empty event triggered for track: ${track ? track.title : 'unknown'}`);
         })
         .on("playerEmptyWithQueue", async (player, send) => {
-            //info(`Player empty with queue event triggered`);
+            info(`Player empty with queue event triggered`);
         });
     }
 
@@ -411,6 +412,17 @@ class DiscordBot extends Client {
             this.login_attempts++;
             setTimeout(this.connect, 5000);
         }
+    }
+    // Helper method to update queue data
+    updateQueueData = async (player) => {
+        const queueData = {
+            sessionId: player.node.sessionId,
+            voiceChannelId: player.voiceChannelId,
+            queue: player.queue,
+            currentTrack: player.queue.current,
+            position: player.position
+        };
+        await this.myCustomStore.set(player.guildId, queueData);
     }
 }
 

@@ -9,17 +9,11 @@ module.exports = new ApplicationCommand({
         type: 1,
         options: [
             {
-                name: 'search',
+                name: 'input',
                 description: 'What to play? Paste the link or search',
                 type: ApplicationCommandOptionType.String,
-                required: false,
+                required: true,
                 autocomplete: true
-            },
-            {
-                name: 'playlist',
-                description: 'Paste the playlist URL to play it directly',
-                type: ApplicationCommandOptionType.String,
-                required: false
             }
         ]
     },
@@ -34,40 +28,34 @@ module.exports = new ApplicationCommand({
     run: async (client, interaction) => {
         try {
             const vcId = interaction.member.voice.channelId;
-            if (!vcId) {
-                return interaction.reply({ ephemeral: true, content: `Join a voice Channel` });
-            }
-
-            const searchTerm = interaction.options.getString('search');
-            const playlistLink = interaction.options.getString('playlist');
-
-            if (!searchTerm && !playlistLink) {
-                return interaction.reply({ content: `Please provide a valid search term or URL.`, ephemeral: true });
-            }
-
             await interaction.deferReply();
+            if (!vcId) {
+                return interaction.followUp({ ephemeral: true, content: `Join a voice Channel` });
+            }
 
-            const query = searchTerm ? searchTerm.trim() : playlistLink.trim();
-            const isValidUrl = /^https?:\/\/[^\s]+$/.test(query);
+            const input = interaction.options.getString('input');
+            const isValidUrl = /^https?:\/\/[^\s]+$/.test(input);
             let source;
             
-            if (isValidUrl) {
-                if (query.includes("youtube.com") || query.includes("youtu.be")) {
-                    source = "ytsearch";
-                } else if (query.includes("music.youtube.com")) {
-                    source = "ytmsearch";
-                } else if (query.includes("spotify.com")) {
-                    source = "spsearch";
-                } else if (query.includes("soundcloud.com")) {
-                    source = "scsearch";
-                } else {
-                    return interaction.editReply({ content: `Unsupported URL source.`, ephemeral: true });
-                }
-            } else {
-                source = "ytsearch";
+            if (!input) {
+                return interaction.followUp({ content: `Please provide a valid search term or URL.`, ephemeral: true });
             }
 
-            const player = client.lavalink.getPlayer(interaction.guildId) || await client.lavalink.createPlayer({
+            if (isValidUrl) {
+                if (input.includes("youtube.com") || input.includes("youtu.be")) {
+                    source = "ytsearch";
+                } else if (input.includes("music.youtube.com")) {
+                    source = "ytmsearch";
+                } else if (input.includes("spotify.com")) {
+                    source = "spsearch";
+                } else if (input.includes("soundcloud.com")) {
+                    source = "scsearch";
+                } else {
+                    return interaction.followUp({ content: `Unsupported URL source.`, ephemeral: true });
+                }
+            }
+
+            const player = client.lavalink.getPlayer(interaction.guildId) || client.lavalink.createPlayer({
                 guildId: interaction.guildId,
                 voiceChannelId: vcId,
                 textChannelId: interaction.channelId,
@@ -75,46 +63,32 @@ module.exports = new ApplicationCommand({
                 selfMute: false,
                 volume: client.defaultVolume,
             });
+            
+            const response = await player.search({ query: input, source: source }, interaction.user);
 
-            if (playlistLink) {
-                const response = await player.search({ query: playlistLink.trim(), source: source }, interaction.user);
+            if (!response || response.loadType === 'empty' || !response.tracks.length) {
+                return interaction.followUp({ content: `No Tracks found.`, ephemeral: true });
+            }
 
-                if (!response || response.loadType === 'empty' || !response.tracks.length) {
-                    return interaction.editReply({ content: `No Tracks found in the playlist.`, ephemeral: true });
-                }
+            if (response.loadType === 'playlist' && response.tracks.length > 0) {
+                await player.queue.add(response.tracks);
+                const reply = await interaction.followUp({
+                    content: `✅ Added [\`${response.tracks.length}\`](<${input}>) Tracks from the playlist: \`${response.playlist?.name || "Unknown Playlist"}\`.`,
+                });
+                setTimeout(() => reply.delete(), 5000);
+            } else if (response.loadType === 'track' || response.tracks.length === 1) {
+                await player.queue.add(response.tracks[0]);
+                const reply = await interaction.followUp({
+                    content: `✅ Added [\`${response.tracks[0].info.title}\`](<${response.tracks[0].info.uri}>) by \`${response.tracks[0].info.author}\`.`,
+                });
+                setTimeout(() => reply.delete(), 5000);
+            } else {
+                return interaction.followUp({ content: `The provided input is not a valid track or contains no tracks.`, ephemeral: true });
+            }
 
-                if (response.loadType === 'playlist' && response.tracks.length > 0) {
-                    await player.queue.add(response.tracks);
-                    const reply = await interaction.editReply({
-                        content: `✅ Added [\`${response.tracks.length}\`](<${playlistLink}>) Tracks from the playlist: \`${response.playlist?.name || "Unknown Playlist"}\`.`,
-                    });
-                    setTimeout(() => reply.delete(), 5000);
-                } else {
-                    return interaction.editReply({ content: `The provided link is not a valid playlist or contains no tracks.`, ephemeral: true });
-                }
-
-                if (!player.playing) {
-                    await player.connect();
-                    await player.play();
-                }
-                return;
-            } else if (searchTerm) {
-                const response = await player.search({ query: searchTerm.trim(), source: source }, interaction.user);
-
-                if (!response || !response.tracks.length) {
-                    return interaction.editReply({ content: `No Tracks found`, ephemeral: true });
-                } else {
-                    await player.queue.add(response.tracks[0]);
-                    const reply = await interaction.editReply({
-                        content: `✅ Added [\`${response.tracks[0].info.title}\`](<${response.tracks[0].info.uri}>) by \`${response.tracks[0].info.author}\``,
-                    });
-                    setTimeout(() => reply.delete(), 5000);
-                }
-
-                if (!player.playing) {
-                    await player.connect();
-                    await player.play();
-                }
+            if (!player.playing) {
+                await player.connect();
+                await player.play();
             }
         } catch (error) {
             console.error('Error handling interaction:', error);

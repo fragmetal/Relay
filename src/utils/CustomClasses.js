@@ -4,30 +4,37 @@ class MyCustomStore {
     constructor() {
         // No need for a redis client
     }
+    async getSessionId(guildId) {
+        const data = await checkDocument('lavalinkqueue', { _id: guildId });
+
+        if (data) {
+            return data.sessionId;
+        }
+        return null;
+    }
 
     async get(guildId) {
         const data = await checkDocument('lavalinkqueue', { _id: guildId });
 
-        const parsedQueue = data ? await this.parse(data.queue) : null;
-        return parsedQueue;
+        if (data) {
+            const parsedQueue = await this.parse(data.queue);
+            return parsedQueue;
+        }
+        return null;
     }
 
     async set(guildId, queueData) {
         const stringifiedQueueData = await this.stringify(queueData);
 
         const existingDocument = await checkDocument('lavalinkqueue', { _id: guildId });
+        const document = {
+            _id: guildId,
+            queue: stringifiedQueueData
+        };
+
         if (existingDocument) {
-            // Check if the queue is a string and convert it to an array if necessary
-            if (typeof existingDocument.queue === 'string') {
-                await updateDocument('lavalinkqueue', { _id: guildId }, { $set: { queue: [] } });
-            }
-            // Now you can safely update the queue
-            return await updateDocument('lavalinkqueue', { _id: guildId }, { $set: { queue: stringifiedQueueData } });
+            return await updateDocument('lavalinkqueue', { _id: guildId }, { $set: document });
         } else {
-            const document = {
-                _id: guildId,
-                queue: stringifiedQueueData
-            };
             return await insertDocument('lavalinkqueue', document);
         }
     }
