@@ -243,7 +243,7 @@ class DiscordBot extends Client {
                             `> - **Author:** ${track?.info?.author}`,
                             `> - **Duration:** ${formatDuration(track?.info?.duration || 0)} | Ends <t:${Math.floor((Date.now() + (track?.info?.duration || 0)) / 1000)}:R>`,
                             `> - **Source:** ${track?.info?.sourceName}`,
-                            `> - **Requester:** <@${track?.requester}>`,
+                            `> - **Requester:** ${track?.requester}`,
                             track?.pluginInfo?.clientData?.fromAutoplay ? `> *From Autoplay* ✅` : undefined
                         ].filter(Boolean).join("\n").substring(0, 4096)
                     )

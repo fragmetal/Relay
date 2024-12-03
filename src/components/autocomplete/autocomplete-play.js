@@ -28,7 +28,7 @@ module.exports = new AutocompleteComponent({
                     const playlistName = response.playlist?.name || "Unknown Playlist";
                     await interaction.respond([{ name: `Playlist: ${playlistName}`, value: currentInput }]);
                     return;
-                }else {
+                } else {
                     const tracks = response.tracks.slice(0, 25); // Limit to 25 results
                     const choices = tracks.map(track => {
                         const duration = new Date(track.info.duration).toISOString().substring(11, 19);
