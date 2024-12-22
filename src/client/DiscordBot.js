@@ -82,7 +82,7 @@ class DiscordBot extends Client {
             heartBeatInterval: 30_000,
             enablePingOnStatsCheck: true,
             retryDelay: 10e3,
-            retryAmount: 5,
+            retryAmount: 50,
             sendToShard: (id, payload) => {
                 const guild = this.guilds.cache.get(id);
                 if (guild) {
