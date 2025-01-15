@@ -75,7 +75,7 @@ class DiscordBot extends Client {
             const formattedUptime = `${days}d ${hours}h ${minutes}m ${seconds}s`;
 
             const statusMessages = [
-                { name: `Use /help to see all commands`, type: 4 },
+                // { name: `Use /help to see all commands`, type: 4 },
                 { name: `Up | ${formattedUptime}`, type: 4 },
             ];
             this.user.setPresence({ activities: [statusMessages[index]] });
