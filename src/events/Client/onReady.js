@@ -10,7 +10,7 @@ module.exports = new Event({
     run: async (__client__, client) => {
         try {
             success('Logged in as ' + client.user.displayName + ', took ' + ((Date.now() - __client__.login_timestamp) / 1000) + "s.");
-            
+
             const guildId = client.guilds.cache.first().id;
             const settings = await checkDocument('voice_channels', { _id: guildId });
 
