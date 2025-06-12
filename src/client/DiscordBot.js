@@ -1,6 +1,6 @@
-const { Client, Collection, Partials, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
+const { Client, Collection, Partials } = require("discord.js");
 const CommandsHandler = require("./handler/CommandsHandler");
-const { warn, error, info, success } = require("../utils/Console");
+const { warn, error, success } = require("../utils/Console");
 const config = require("../config");
 const CommandsListener = require("./handler/CommandsListener");
 const ComponentsHandler = require("./handler/ComponentsHandler");
