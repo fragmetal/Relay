@@ -1,7 +1,6 @@
-const { ModalSubmitInteraction, PermissionFlagsBits } = require("discord.js");
+const { ModalSubmitInteraction, PermissionFlagsBits, MessageFlags } = require("discord.js");
 const DiscordBot = require("../../client/DiscordBot");
 const Component = require("../../structure/Component");
-const { checkDocument } = require("../../utils/mongodb");
 
 module.exports = new Component({
     customId: 'limit-modal',
@@ -22,7 +21,7 @@ module.exports = new Component({
         if (isNaN(limit) || limit < 0 || limit > 99) {
             return interaction.reply({
                 content: '❌ Invalid input! Please enter a number between 0-99',
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
         
@@ -30,7 +29,7 @@ module.exports = new Component({
         if (!voiceChannel) {
             return interaction.reply({
                 content: "❌ You must be in a voice channel to set limits!",
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
         
@@ -39,7 +38,7 @@ module.exports = new Component({
         if (!botPermissions.has(PermissionFlagsBits.ManageChannels)) {
             return interaction.reply({
                 content: "❌ I don't have permission to manage this channel!",
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
         
@@ -53,13 +52,13 @@ module.exports = new Component({
             
             await interaction.reply({
                 content: message,
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         } catch (error) {
             console.error('Error setting channel limit:', error);
             await interaction.reply({
                 content: '❌ Failed to set user limit!',
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
     }

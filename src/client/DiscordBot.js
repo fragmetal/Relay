@@ -1,6 +1,6 @@
 const { Client, Collection, Partials } = require("discord.js");
 const CommandsHandler = require("./handler/CommandsHandler");
-const { warn, error, success } = require("../utils/Console");
+const { info, warn, error, success } = require("../utils/Console");
 const config = require("../config");
 const CommandsListener = require("./handler/CommandsListener");
 const ComponentsHandler = require("./handler/ComponentsHandler");
@@ -84,7 +84,7 @@ class DiscordBot extends Client {
     }
 
     connect = async () => {
-        warn(`Attempting to connect to the Discord bot... (${this.login_attempts + 1})`);
+        info(`Attempting to connect to the Discord bot... (${this.login_attempts + 1})`);
 
         this.login_timestamp = Date.now();
 
@@ -95,7 +95,7 @@ class DiscordBot extends Client {
             this.events_handler.load();
             this.startStatusRotation();
 
-            warn('Attempting to register application commands... (this might take a while!)');
+            info('Attempting to register application commands... (this might take a while!)');
             await this.commands_handler.registerApplicationCommands(config.development);
             success('Successfully registered application commands. For specific guild? ' + (config.development.enabled ? 'Yes' : 'No'));
         } catch (err) {

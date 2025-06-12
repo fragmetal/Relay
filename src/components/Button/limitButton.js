@@ -1,7 +1,7 @@
-const { ButtonInteraction, ModalBuilder, TextInputBuilder, ActionRowBuilder, TextInputStyle } = require("discord.js");
+const { ButtonInteraction, ModalBuilder, TextInputBuilder, ActionRowBuilder, TextInputStyle, MessageFlags } = require("discord.js");
 const DiscordBot = require("../../client/DiscordBot");
 const Component = require("../../structure/Component");
-const { checkDocument } = require("../../utils/mongodb"); // Add this import
+const { checkDocument } = require("../../utils/mongodb");
 
 module.exports = new Component({
     customId: 'limit',
@@ -18,7 +18,7 @@ module.exports = new Component({
         if (!voiceChannel) {
             return interaction.reply({
                 content: "❌ You must be in a voice channel to use this button!",
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
         
@@ -33,7 +33,7 @@ module.exports = new Component({
         if (!isOwner) {
             return interaction.reply({
                 content: "❌ Only the voice channel owner can set user limits!",
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
 
