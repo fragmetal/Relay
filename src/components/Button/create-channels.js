@@ -35,7 +35,7 @@ module.exports = new Component({
         // Logic for creating channels
         try {
             const newCategoryChannel = await interaction.guild.channels.create({
-                name: 'Temp Channels',
+                name: 'Ｔｅｍｐ　Ｃｈａｎｎｅｌｓ',
                 type: ChannelType.GuildCategory,
                 permissionOverwrites: [
                     {
@@ -56,9 +56,9 @@ module.exports = new Component({
             });
 
             const channelsToCreate = [
-                { name: 'dashboard', type: ChannelType.GuildText },
-                { name: 'gamechat', type: ChannelType.GuildText },
-                { name: 'Join To Create', type: ChannelType.GuildVoice }
+                { name: '𝔻𝔸𝕊ℍ𝔹𝕆𝔸ℝ𝔻', type: ChannelType.GuildText },
+                { name: '𝔾𝔸𝕄𝔼ℂℍ𝔸𝕋', type: ChannelType.GuildText },
+                { name: 'ᑕᖇEᗩTE ᖇOOᗰ', type: ChannelType.GuildVoice }
             ];
 
             const createdChannels = [];
