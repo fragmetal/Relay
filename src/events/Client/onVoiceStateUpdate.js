@@ -152,7 +152,7 @@ module.exports = new Event({
                 }
 
                 // Channel name sanitization
-                const sanitizedName = `${member.displayName.replace(/[^\w\s\u{1F300}-\u{1F5FF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}]/giu, '')}'s Room`
+                const sanitizedName = `🔗 ${member.displayName.replace(/[^\w\s\u{1F300}-\u{1F5FF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}]/giu, '')}'s Room`
                     .substring(0, 100); // Discord's 100-char limit
                 
                 // Start with JoinCreate channel's permission overwrites
@@ -251,4 +251,4 @@ module.exports = new Event({
             }
         }
     }
-});
+}).toJSON();
