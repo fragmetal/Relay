@@ -1,4 +1,4 @@
-const { ButtonInteraction, ModalBuilder, TextInputBuilder, ActionRowBuilder, TextInputStyle, DiscordAPIError, MessageFlags } = require("discord.js");
+const { ButtonInteraction, ModalBuilder, TextInputBuilder, ActionRowBuilder, TextInputStyle, MessageFlags } = require("discord.js");
 const DiscordBot = require("../../client/DiscordBot");
 const Component = require("../../structure/Component");
 const { checkDocument } = require("../../utils/mongodb");
@@ -12,8 +12,7 @@ module.exports = new Component({
      */
     run: async (client, interaction) => {
         try {
-            // Immediately defer to prevent token expiration
-            await interaction.deferReply({ ephemeral: true, flags: MessageFlags.Ephemeral });
+            await interaction.deferReply({ flags: MessageFlags.Ephemeral });
             
             const member = interaction.member;
             const voiceChannel = member.voice.channel;
@@ -67,8 +66,7 @@ module.exports = new Component({
         } catch (error) {
             // Handle expired interactions gracefully
             if (error.code === 10062 || error.message.includes('Unknown interaction')) {
-                //console.log('Interaction expired - safe to ignore');
-                return;
+                return; // Silently ignore expired interactions
             }
             
             console.error('Error in limit button:', error);
@@ -79,7 +77,10 @@ module.exports = new Component({
                     content: "❌ An unexpected error occurred!",
                 });
             } catch (finalError) {
-                console.log('Could not send error message:', finalError.message);
+                // Don't log if it's another interaction expiration error
+                if (finalError.code !== 10062) {
+                    console.log('Could not send error message:', finalError.message);
+                }
             }
         }
     }
