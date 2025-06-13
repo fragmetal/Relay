@@ -1,4 +1,4 @@
-const { ButtonInteraction, ModalBuilder, TextInputBuilder, ActionRowBuilder, TextInputStyle, DiscordAPIError } = require("discord.js");
+const { ButtonInteraction, ModalBuilder, TextInputBuilder, ActionRowBuilder, TextInputStyle, DiscordAPIError, MessageFlags } = require("discord.js");
 const DiscordBot = require("../../client/DiscordBot");
 const Component = require("../../structure/Component");
 const { checkDocument } = require("../../utils/mongodb");
@@ -11,48 +11,26 @@ module.exports = new Component({
      * @param {ButtonInteraction} interaction 
      */
     run: async (client, interaction) => {
-        // Helper function to handle interaction responses safely
-        const safeRespond = async (responseFn, ...args) => {
-            try {
-                await responseFn(...args);
-                return true;
-            } catch (error) {
-                if (error instanceof DiscordAPIError && error.code === 10062) {
-                    console.log('Ignoring expired interaction');
-                    return false;
-                }
-                throw error;
-            }
-        };
-
         try {
-            // Check if interaction is still valid
-            if (interaction.responded || interaction.replied) return;
+            // Immediately defer to prevent token expiration
+            await interaction.deferReply({ ephemeral: true, flags: MessageFlags.Ephemeral });
             
             const member = interaction.member;
             const voiceChannel = member.voice.channel;
             
             if (!voiceChannel) {
-                return await safeRespond(
-                    interaction.reply.bind(interaction), 
-                    {
-                        content: "❌ You must be in a voice channel to use this button!",
-                        ephemeral: true
-                    }
-                );
+                return await interaction.editReply({
+                    content: "❌ You must be in a voice channel to use this button!",
+                });
             }
             
             const guildId = interaction.guild.id;
             const settings = await checkDocument('voice_channels', { _id: guildId });
             
             if (!settings?.temp_channels) {
-                return await safeRespond(
-                    interaction.reply.bind(interaction),
-                    {
-                        content: "❌ No temporary voice channels configured!",
-                        ephemeral: true
-                    }
-                );
+                return await interaction.editReply({
+                    content: "❌ No temporary voice channels configured!",
+                });
             }
             
             const isOwner = settings.temp_channels.some(
@@ -60,13 +38,9 @@ module.exports = new Component({
             );
             
             if (!isOwner) {
-                return await safeRespond(
-                    interaction.reply.bind(interaction),
-                    {
-                        content: "❌ Only the voice channel owner can set user limits!",
-                        ephemeral: true
-                    }
-                );
+                return await interaction.editReply({
+                    content: "❌ Only the voice channel owner can set user limits!",
+                });
             }
 
             // Create modal
@@ -86,21 +60,26 @@ module.exports = new Component({
             const actionRow = new ActionRowBuilder().addComponents(limitInput);
             modal.addComponents(actionRow);
             
-            // Show modal with safety check
-            await safeRespond(interaction.showModal.bind(interaction), modal);
+            // Show modal and clean up deferred message
+            await interaction.showModal(modal);
+            await interaction.deleteReply();
             
         } catch (error) {
-            if (error instanceof DiscordAPIError && error.code === 10062) {
-                console.log('Interaction expired before processing');
-            } else {
-                console.error('Unexpected error in limit button:', error);
-                await safeRespond(
-                    interaction.reply.bind(interaction),
-                    {
-                        content: "❌ An unexpected error occurred!",
-                        ephemeral: true
-                    }
-                );
+            // Handle expired interactions gracefully
+            if (error.code === 10062 || error.message.includes('Unknown interaction')) {
+                //console.log('Interaction expired - safe to ignore');
+                return;
+            }
+            
+            console.error('Error in limit button:', error);
+            
+            // Attempt to send error message only if interaction is still valid
+            try {
+                await interaction.editReply({
+                    content: "❌ An unexpected error occurred!",
+                });
+            } catch (finalError) {
+                console.log('Could not send error message:', finalError.message);
             }
         }
     }
