@@ -37,8 +37,8 @@ module.exports = new Event({
                     clearTimeout(deletionQueue.get(channel.id));
                 }
 
-                // Schedule new deletion
-                const deletionTask = setTimeout(async () => {
+                // Immediately delete channel
+                (async () => {
                     try {
                         const botMember = await guild.members.fetchMe();
                         
@@ -61,8 +61,7 @@ module.exports = new Event({
                     } catch (err) {
                         error(`[${guild.name}] Failed to delete channel ${channel.name}:`, err);
                     }
-                }, 30000); // 30-second delay
-
+                })();
                 deletionQueue.set(channel.id, deletionTask);
             }
         }
