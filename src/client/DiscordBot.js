@@ -1,3 +1,4 @@
+const EventEmitter = require('events');
 const { Client, Collection, Partials } = require("discord.js");
 const CommandsHandler = require("./handler/CommandsHandler");
 const { info, warn, error, success } = require("../utils/Console");
@@ -58,6 +59,9 @@ class DiscordBot extends Client {
                 }]
             }
         });
+        
+        // Mixin EventEmitter capabilities
+        Object.assign(this, EventEmitter.prototype);
 
         new CommandsListener(this);
         new ComponentsListener(this);
@@ -98,6 +102,9 @@ class DiscordBot extends Client {
             info('Attempting to register application commands... (this might take a while!)');
             await this.commands_handler.registerApplicationCommands(config.development);
             success('Successfully registered application commands. For specific guild? ' + (config.development.enabled ? 'Yes' : 'No'));
+
+            // Emit ready event after full setup
+            this.emit('ready');
         } catch (err) {
             error('Failed to connect to the Discord bot, retrying...');
             error(err);

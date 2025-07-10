@@ -20,18 +20,18 @@ app.use(express.urlencoded({ extended: true }));
 let serverStatus = {
     botConnected: false,
     botReadyAt: null,
-    serverListening: false
+    serverListening: false,
+    botName: 'Discord Bot' // Default name
 };
 
 // Middleware with safe status check
 app.use((req, res, next) => {
-    const status = serverStatus.botConnected 
-        ? `✅ Online since ${serverStatus.botReadyAt.toLocaleString()}`
-        : '🔴 Connecting...';
-    
-    res.locals.botStatus = status;
-    serverStatus.botName = client.user?.tag || 'Discord Bot';
-    next();
+  const status = serverStatus.botConnected 
+      ? `✅ Online since ${serverStatus.botReadyAt.toLocaleString()}`
+      : '🔴 Connecting...';
+  
+  res.locals.botStatus = status;
+  next();
 });
 
 app.get('/', (req, res) => {
@@ -157,20 +157,32 @@ app.get('/api/auth/callback/discord', async (req, res) => {
 (async () => {
   try {
     await connectToMongoDB();
-    client.connect();
-    serverStatus.botConnected = true;
+    
+    // Listen for bot connection events
+    client.on('ready', () => {
+        serverStatus.botConnected = true;
         serverStatus.botReadyAt = new Date();
-        
-        // 2. Start HTTP server after bot connection
-        const PORT = process.env.PORT || 3000;
-        const server = app.listen(PORT, () => {
-            serverStatus.serverListening = true;
-        });
+        serverStatus.botName = client.user.tag;
+    });
 
-    } catch (error) {
-        console.error('💥 Initialization failed:', error);
-        process.exit(1);
-    }
+    client.on('disconnect', () => {
+        serverStatus.botConnected = false;
+    });
+
+    // Start bot connection
+    client.connect();
+
+    // Start HTTP server AFTER initiating bot connection
+    const PORT = process.env.PORT || 3000;
+    const server = app.listen(PORT, () => {
+        serverStatus.serverListening = true;
+        console.log(`Server is running on port ${PORT}`);
+    });
+
+  } catch (error) {
+    console.error('💥 Initialization failed:', error);
+    process.exit(1);
+  }
 })();
 
 // Error handling and cleanup
