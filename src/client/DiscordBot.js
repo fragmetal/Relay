@@ -59,7 +59,7 @@ class DiscordBot extends Client {
                 }]
             }
         });
-        
+
         // Mixin EventEmitter capabilities
         Object.assign(this, EventEmitter.prototype);
 
@@ -103,8 +103,9 @@ class DiscordBot extends Client {
             await this.commands_handler.registerApplicationCommands(config.development);
             success('Successfully registered application commands. For specific guild? ' + (config.development.enabled ? 'Yes' : 'No'));
 
-            // Emit ready event after full setup
-            this.emit('ready');
+             // Emit ready event after FULL setup
+            this.emit('ready'); // This triggers the web server start
+
         } catch (err) {
             error('Failed to connect to the Discord bot, retrying...');
             error(err);

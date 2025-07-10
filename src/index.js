@@ -18,10 +18,10 @@ app.use(express.urlencoded({ extended: true }));
 
 // Initialize status tracking
 let serverStatus = {
-    botConnected: false,
-    botReadyAt: null,
-    serverListening: false,
-    botName: 'Discord Bot' // Default name
+  botConnected: false,
+  botReadyAt: null,
+  serverListening: false,
+  botName: 'Discord Bot' // Default name
 };
 
 // Middleware with safe status check
@@ -158,25 +158,28 @@ app.get('/api/auth/callback/discord', async (req, res) => {
   try {
     await connectToMongoDB();
     
-    // Listen for bot connection events
-    client.on('ready', () => {
-        serverStatus.botConnected = true;
-        serverStatus.botReadyAt = new Date();
-        serverStatus.botName = client.user.tag;
-    });
-
-    client.on('disconnect', () => {
-        serverStatus.botConnected = false;
+    // Listen for bot ready event
+    const botReady = new Promise((resolve) => {
+        client.on('ready', () => {
+            serverStatus.botConnected = true;
+            serverStatus.botReadyAt = new Date();
+            serverStatus.botName = client.user.tag;
+            console.log(`✅ Bot connected: ${client.user.tag}`);
+            resolve();
+        });
     });
 
     // Start bot connection
     client.connect();
 
-    // Start HTTP server AFTER initiating bot connection
+    // Wait for bot to be ready before starting web server
+    await botReady;
+
+    // Start HTTP server AFTER bot is ready
     const PORT = process.env.PORT || 3000;
     const server = app.listen(PORT, () => {
         serverStatus.serverListening = true;
-        console.log(`Server is running on port ${PORT}`);
+        console.log(`🌐 Server listening on port ${PORT}`);
     });
 
   } catch (error) {
