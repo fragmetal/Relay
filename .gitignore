@@ -1,4 +1,4 @@
-.idx
+.idx/
 .vscode
 node_modules
 package-lock.json
@@ -6,5 +6,6 @@ pnpm-lock.yaml
 # DO NOT REMOVE THESE FOR SECURITY
 #src/config.js
 .env
+.firebase/
 database.yml
 firebase-debug.log

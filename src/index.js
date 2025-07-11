@@ -34,6 +34,8 @@ app.use((req, res, next) => {
   next();
 });
 
+app.get('/health', (req, res) => res.status(200).send('OK'));
+
 app.get('/', (req, res) => {
     res.send(`
         <html>
@@ -192,8 +194,25 @@ process.on('SIGTERM', gracefulShutdown);
 process.on('SIGINT', gracefulShutdown);
 
 async function gracefulShutdown() {
-    warn('🛑 Shutting down...');
-    process.exit(0);
+  warn('🛑 Shutting down...');
+  try {
+    if (client && client.destroy) {
+      await client.destroy();
+      warn('Discord bot disconnected');
+    }
+    if (server) {
+      server.close(() => {
+        warn('HTTP server closed');
+        process.exit(0);
+      });
+    } else {
+      process.exit(0);
+    }
+  } catch (err) {
+    error('Shutdown error:', err);
+    process.exit(1);
+  }
 }
+
 
 module.exports = { app, serverStatus };
