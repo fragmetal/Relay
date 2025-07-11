@@ -3,7 +3,7 @@ const express = require('express');
 const axios = require('axios');
 const DiscordBot = require('./client/DiscordBot');
 const { connectToMongoDB } = require('./utils/mongodb');
-
+const { info, warn, error, success } = require("./utils/Console");
 const app = express();
 const client = new DiscordBot();
 
@@ -164,7 +164,6 @@ app.get('/api/auth/callback/discord', async (req, res) => {
             serverStatus.botConnected = true;
             serverStatus.botReadyAt = new Date();
             serverStatus.botName = client.user.tag;
-            console.log(`✅ Bot connected: ${client.user.tag}`);
             resolve();
         });
     });
@@ -179,11 +178,11 @@ app.get('/api/auth/callback/discord', async (req, res) => {
     const PORT = process.env.PORT || 3000;
     const server = app.listen(PORT, () => {
         serverStatus.serverListening = true;
-        console.log(`🌐 Server listening on port ${PORT}`);
+        success(`🌐 Server listening on port ${PORT}`);
     });
 
   } catch (error) {
-    console.error('💥 Initialization failed:', error);
+    error('💥 Initialization failed:', error);
     process.exit(1);
   }
 })();
@@ -193,7 +192,7 @@ process.on('SIGTERM', gracefulShutdown);
 process.on('SIGINT', gracefulShutdown);
 
 async function gracefulShutdown() {
-    console.log('🛑 Shutting down...');
+    warn('🛑 Shutting down...');
     process.exit(0);
 }
 
