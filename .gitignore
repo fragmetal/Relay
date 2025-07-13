@@ -9,3 +9,4 @@ pnpm-lock.yaml
 .firebase/
 database.yml
 firebase-debug.log
+README.md
