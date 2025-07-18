@@ -37,7 +37,6 @@ module.exports = new Event({
                     clearTimeout(deletionQueue.get(channel.id));
                 }
 
-                // Immediately delete channel
                 const deletionPromise = (async () => {
                     try {
                         const botMember = await guild.members.fetchMe();
@@ -46,23 +45,23 @@ module.exports = new Event({
                         if (!botMember.permissions.has(PermissionFlagsBits.ManageChannels)) {
                             return error(`[${guild.name}] Missing ManageChannels permission`);
                         }
-
+                
                         // Re-fetch to ensure channel is still empty
                         const freshChannel = await guild.channels.fetch(channel.id).catch(() => null);
                         if (!freshChannel || freshChannel.members.size > 0) return;
-
+                
                         await freshChannel.delete();
                         await updateDocument('voice_channels', { _id: guild.id }, { 
                             $pull: { temp_channels: { TempChannel: channel.id } } 
                         });
-
+                
                         deletionQueue.delete(channel.id);
                         success(`[${guild.name}] Deleted empty channel: ${channel.name}`);
                     } catch (err) {
                         error(`[${guild.name}] Failed to delete channel ${channel.name}:`, err);
                     }
                 })();
-                deletionQueue.set(channel.id, deletionTask);
+                deletionQueue.set(channel.id, deletionPromise);
             }
         }
 
