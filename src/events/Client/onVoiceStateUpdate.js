@@ -38,7 +38,7 @@ module.exports = new Event({
                 }
 
                 // Immediately delete channel
-                (async () => {
+                const deletionPromise = (async () => {
                     try {
                         const botMember = await guild.members.fetchMe();
                         
