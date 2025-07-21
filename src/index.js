@@ -1,11 +1,16 @@
 require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
+const fs = require('fs');
+const path = require('path');
 const DiscordBot = require('./client/DiscordBot');
 const { connectToMongoDB } = require('./utils/mongodb');
 const { info, warn, error, success } = require("./utils/Console");
 const app = express();
 const client = new DiscordBot();
+
+// Declare server at top level for graceful shutdown
+let server;
 
 // Add these to your .env file
 const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
@@ -21,17 +26,52 @@ let serverStatus = {
   botConnected: false,
   botReadyAt: null,
   serverListening: false,
-  botName: 'Discord Bot' // Default name
+  botName: 'Discord Bot'
 };
+
+// Favicon configuration - using same directory as index.js
+const FAVICON_PATH = path.join(__dirname, 'favicon.ico');
+const DEFAULT_FAVICON = Buffer.from(
+  'AAABAAEAEBAQAAAAAAAoAQAAFgAAACgAAAAQAAAAIAAAAAEABAAAAAAAgAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAA/4QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAREREREREREREQAAAAAAAAEREREQAAAAAREREQAAAAABERERAAAAAAEREREAAAAAAREREQAAAAABERERAAAAAAEREREAAAAAAREREQAAAAABERERAAAAAAEREREAAAAAAREREQAAAAABERERAAAAAAEREREQAAAAAREREREAABEREAAAAAAREREQAAAAABEREREAAAABEREREQAAABEREREREREREREREREREREREREAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+  'base64'
+);
 
 // Middleware with safe status check
 app.use((req, res, next) => {
+  // Add safety check for botReadyAt
+  const readyTime = serverStatus.botReadyAt 
+    ? serverStatus.botReadyAt.toLocaleString() 
+    : 'N/A';
+  
   const status = serverStatus.botConnected 
-      ? `✅ Online since ${serverStatus.botReadyAt.toLocaleString()}`
+      ? `✅ Online since ${readyTime}`
       : '🔴 Connecting...';
   
   res.locals.botStatus = status;
   next();
+});
+
+// Favicon route
+app.get('/favicon.ico', (req, res) => {
+  // Set cache headers
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  
+  // Check if favicon exists in src directory
+  fs.access(FAVICON_PATH, fs.constants.F_OK, (err) => {
+    if (err) {
+      // Serve default favicon if custom doesn't exist
+      res.type('ico').send(DEFAULT_FAVICON);
+    } else {
+      // Serve custom favicon from src directory
+      res.sendFile(FAVICON_PATH, (err) => {
+        if (err) {
+          // Use custom error logger
+          error('Error serving favicon:', err);
+          res.type('ico').send(DEFAULT_FAVICON);
+        }
+      });
+    }
+  });
 });
 
 app.get('/health', (req, res) => res.status(200).send('OK'));
@@ -98,11 +138,11 @@ app.get('/', (req, res) => {
 
 app.get('/api/auth/callback/discord', async (req, res) => {
     try {
-      const { code, error } = req.query;
+      const { code, error: discordError } = req.query;
   
       // Handle errors from Discord
-      if (error) {
-        return res.status(401).send(`Error: ${error}`);
+      if (discordError) {
+        return res.status(401).send(`Error: ${discordError}`);
       }
   
       // Verify authorization code exists
@@ -110,9 +150,9 @@ app.get('/api/auth/callback/discord', async (req, res) => {
         return res.status(400).send('Missing authorization code');
       }
   
-      // Exchange code for access token (CORRECT ENDPOINT)
+      // Exchange code for access token
       const tokenResponse = await axios.post(
-        'https://discord.com/api/oauth2/token', // Correct endpoint
+        'https://discord.com/api/oauth2/token',
         new URLSearchParams({
           client_id: DISCORD_CLIENT_ID,
           client_secret: DISCORD_CLIENT_SECRET,
@@ -142,15 +182,15 @@ app.get('/api/auth/callback/discord', async (req, res) => {
         application_id: DISCORD_CLIENT_ID
       });
   
-    } catch (error) {
-      console.error('Full error details:', {
-        message: error.message,
-        status: error.response?.status,
-        data: error.response?.data
+    } catch (err) {
+      error('Full error details:', {
+        message: err.message,
+        status: err.response?.status,
+        data: err.response?.data
       });
       res.status(500).json({
         error: 'Authentication failed',
-        details: error.response?.data || error.message
+        details: err.response?.data || err.message
       });
     }
   });
@@ -178,13 +218,13 @@ app.get('/api/auth/callback/discord', async (req, res) => {
 
     // Start HTTP server AFTER bot is ready
     const PORT = process.env.PORT || 3000;
-    const server = app.listen(PORT, () => {
+    server = app.listen(PORT, () => {
         serverStatus.serverListening = true;
         success(`🌐 Server listening on port ${PORT}`);
     });
 
-  } catch (error) {
-    error('💥 Initialization failed:', error);
+  } catch (err) {
+    error('💥 Initialization failed:', err);
     process.exit(1);
   }
 })();
@@ -213,6 +253,5 @@ async function gracefulShutdown() {
     process.exit(1);
   }
 }
-
 
 module.exports = { app, serverStatus };
