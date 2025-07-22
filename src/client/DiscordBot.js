@@ -88,7 +88,6 @@ class DiscordBot extends Client {
         try {
             await this.login(process.env.CLIENT_TOKEN);
 
-            success(`✅ Bot logged in as ${this.user.tag}`);
             this.commands_handler.load();
             this.components_handler.load();
             this.events_handler.load();

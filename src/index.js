@@ -1,47 +1,59 @@
 require('dotenv').config();
-const express = require('express');
 const DiscordBot = require('./client/DiscordBot');
+const HttpServer = require('./server/HttpServer');
 const { connectToMongoDB } = require('./utils/mongodb');
 const { success, error, warn } = require('./utils/Console');
 
-// Instantiate app
-const app = express();
-const PORT = process.env.PORT || 3000;
+let shuttingDown = false;
 
-// Basic keep-alive and health endpoints
-app.get('/', (req, res) => res.status(200).send('OK'));
-app.get('/health', (req, res) => res.status(200).send('OK'));
+const bot = new DiscordBot();
+const server = new HttpServer(process.env.PORT || 3000);
 
-// Start HTTP server immediately (for platform health checks)
-app.listen(PORT, () => {
-    success(`🌐 Keep-alive HTTP server running on port ${PORT}`);
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
+
+process.on('unhandledRejection', (reason) => {
+    error('Unhandled Rejection:', reason);
+});
+process.on('uncaughtException', (err) => {
+    error('Uncaught Exception:', err);
 });
 
-// Initialize Discord Bot
 (async () => {
     try {
         await connectToMongoDB();
-        const client = new DiscordBot();
-        await client.connect();
-        success(`🤖 Discord bot connected as ${client.user?.tag || 'unknown'}`);
+        server.start();
+        await bot.connect();
+        success(`🤖 Discord bot connected as ${bot.user?.tag || 'unknown'}`);
     } catch (err) {
-        error('💥 Bot initialization failed:', err);
-        process.exit(1);
+        error('💥 Fatal startup failure:', err);
+        await shutdown(1);
     }
 })();
 
-// Graceful shutdown handler
-process.on('SIGTERM', shutdown);
-process.on('SIGINT', shutdown);
+async function shutdown(code) {
+    if (shuttingDown) return;
+    shuttingDown = true;
 
-async function shutdown() {
-    warn('🛑 Shutting down services...');
     try {
-        await client?.destroy();
-        warn('Discord bot disconnected.');
-        process.exit(0);
+        if (bot?.ws?.status !== 0) {
+            await bot.destroy();
+            warn('Bot disconnected.');
+        } else {
+            warn('Bot already disconnected.');
+        }
+
+        await server?.stop();
+        warn('HTTP server stopped.');
     } catch (e) {
-        error('Failed graceful shutdown:', e);
-        process.exit(1);
+        error('Shutdown error:', e);
+    } finally {
+        const exitCode = typeof code === 'number' ? code : 0;
+        warn(`Process exiting with code ${exitCode}`);
+        process.exit(exitCode);
     }
 }
+
+process.on('SIGINT', () => shutdown(0));
+process.on('SIGTERM', () => shutdown(0));
+
