@@ -20,10 +20,11 @@ class DiscordBot extends Client {
             autocomplete: new Collection()
         }
     }
+
     rest_application_commands_array = [];
     login_attempts = 0;
     login_timestamp = 0;
-    
+
     commands_handler = new CommandsHandler(this);
     components_handler = new ComponentsHandler(this);
     events_handler = new EventsHandler(this);
@@ -51,21 +52,17 @@ class DiscordBot extends Client {
                 Partials.User
             ],
             presence: {
-                activities: [{
-                    name: 'keep this empty',
-                    type: 4,
-                    state: 'Loading...'
-                }]
+                activities: [{ name: 'keep this empty', type: 4, state: 'Loading...' }]
             }
         });
 
         new CommandsListener(this);
         new ComponentsListener(this);
     }
-    
+
     startStatusRotation = () => {
         let index = 0;
-        
+
         setInterval(() => {
             const uptime = process.uptime();
             const days = Math.floor(uptime / 86400);
@@ -75,7 +72,6 @@ class DiscordBot extends Client {
             const formattedUptime = `${days}d ${hours}h ${minutes}m ${seconds}s`;
 
             const statusMessages = [
-                // { name: `Use /help to see all commands`, type: 4 },
                 { name: `Up | ${formattedUptime}`, type: 4 },
             ];
             this.user.setPresence({ activities: [statusMessages[index]] });
@@ -84,26 +80,30 @@ class DiscordBot extends Client {
     }
 
     connect = async () => {
-        
         this.login_timestamp = Date.now();
+        this.login_attempts++;
+
+        info(`🔌 [${this.login_attempts}] Connecting Discord bot...`);
 
         try {
             await this.login(process.env.CLIENT_TOKEN);
+
+            success(`✅ Bot logged in as ${this.user.tag}`);
             this.commands_handler.load();
             this.components_handler.load();
             this.events_handler.load();
             this.startStatusRotation();
-            info(`Attempting to connect to the Discord bot... (${this.login_attempts + 1})`);
 
-            info('Attempting to register application commands... (this might take a while!)');
+            info('📡 Registering application commands (this might take a while)...');
             await this.commands_handler.registerApplicationCommands(config.development);
-            success('Successfully registered application commands. For specific guild? ' + (config.development.enabled ? 'Yes' : 'No'));
+
+            success('✅ Commands registered. Specific guild? ' + (config.development.enabled ? 'Yes' : 'No'));
 
         } catch (err) {
-            error('Failed to connect to the Discord bot, retrying...');
+            error(`❌ Connection failed (attempt ${this.login_attempts}), retrying in 5s...`);
             error(err);
-            this.login_attempts++;
-            setTimeout(this.connect, 5000);
+
+            setTimeout(() => this.connect(), 5000);
         }
     }
 }
