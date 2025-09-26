@@ -55,7 +55,9 @@ module.exports = new Event({
 
             const requiredPermissions = [
                 PermissionFlagsBits.ManageChannels,
-                PermissionFlagsBits.MoveMembers
+                PermissionFlagsBits.MoveMembers,
+                PermissionFlagsBits.ManageRoles,
+                PermissionFlagsBits.ViewChannel
             ];
 
             if (!botMember.permissions.has(requiredPermissions)) {
@@ -77,9 +79,9 @@ module.exports = new Event({
 
             const customPermissions = settings.custom_permissions || {};
             const botPerms = new PermissionsBitField();
-            (customPermissions.bot || ['ManageChannels', 'MoveMembers']).forEach(perm => botPerms.add(PermissionFlagsBits[perm]));
+            (customPermissions.bot || ['ManageChannels', 'MoveMembers', 'ViewChannel']).forEach(perm => botPerms.add(PermissionFlagsBits[perm]));
             const userPerms = new PermissionsBitField();
-            (customPermissions.user || ['ManageChannels', 'MoveMembers']).forEach(perm => userPerms.add(PermissionFlagsBits[perm]));
+            (customPermissions.user || ['Connect', 'Speak']).forEach(perm => userPerms.add(PermissionFlagsBits[perm]));
 
             const sanitizedName = `🔗︱${member.displayName.replace(/[^\w\s\u{1F300}-\u{1F5FF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}]/giu, '')}'s Room`.substring(0, 100);
 
