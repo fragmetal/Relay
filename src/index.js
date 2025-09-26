@@ -12,14 +12,14 @@ const bot = new DiscordBot();
 // -------------------------
 const app = express();
 
-// Simple healthcheck endpoint
+// Healthcheck endpoint
 app.get('/', (req, res) => {
   res.json({ status: 'ok', bot: bot.user?.tag || null });
 });
 
-// Optional: add a /shutdown endpoint (use carefully!)
-app.post('/shutdown', async (req, res) => {
-  res.json({ message: 'Shutdown initiated' });
+// Killbot endpoint
+app.get('/killbot', async (req, res) => {
+  res.json({ message: '🛑 Kill signal received. Shutting down bot...' });
   await shutdown(0);
 });
 
