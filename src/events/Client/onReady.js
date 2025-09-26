@@ -5,7 +5,7 @@ const createInterface = require("../../utils/createInterface");
 const { checkDocument } = require('../../utils/mongodb');
 
 module.exports = new Event({
-    event: 'ready',
+    event: 'clientReady',
     once: true,
     run: async (__client__, client) => {
         try {
