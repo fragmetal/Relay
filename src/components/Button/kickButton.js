@@ -13,7 +13,7 @@ module.exports = new Component({
     run: async (client, interaction) => {
         await interaction.reply({
             content: 'Kick button clicked!',
-            ephemeral: true
+            flags: ['Ephemeral']
         });
     }
 }).toJSON(); 
