@@ -93,6 +93,7 @@ module.exports = new Component({
                 gamechat: createdChannels.find(c => c.name === 'gamechat').id,
                 JoinCreate: createdChannels.find(c => c.name === 'Join To Create').id,
                 vc_dashboard: createdChannels.find(c => c.name === 'dashboard').id,
+                vc_dashboard_message: null,
                 categoryChannelId: newCategoryChannel.id,
             };
 
