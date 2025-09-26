@@ -11,7 +11,6 @@ const createInterface = async (channel) => {
             .setDescription('**This interface to manage temporary voice channel.** \n\n' +
                             '♾️ **Limit**: Set a user limit for the voice channel.\n' +
                             '🔒 **Privacy**: Toggle the privacy settings of the channel.\n' +
-                            '📩 **Invite**: Send an invite link to the channel.\n' +
                             '🚫 **Kick**: Remove a user from the voice channel.\n' +
                             '👑 **Claim**: Claim ownership of the voice channel.\n' +
                             '🔄 **Transfer**: Transfer ownership to another user.\n');
@@ -19,7 +18,6 @@ const createInterface = async (channel) => {
         const row1 = new ActionRowBuilder().addComponents(
             new ButtonBuilder().setCustomId('limit').setLabel('♾️').setStyle(ButtonStyle.Secondary),
             new ButtonBuilder().setCustomId('privacy').setLabel('🔒').setStyle(ButtonStyle.Secondary),
-            new ButtonBuilder().setCustomId('invite').setLabel('📩').setStyle(ButtonStyle.Secondary),
             new ButtonBuilder().setCustomId('kick').setLabel('🚫').setStyle(ButtonStyle.Secondary),
             new ButtonBuilder().setCustomId('claim').setLabel('👑').setStyle(ButtonStyle.Secondary)
         );
