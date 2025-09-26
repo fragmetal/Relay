@@ -6,6 +6,7 @@ const { success, error, warn } = require('./utils/Console');
 
 let shuttingDown = false;
 const bot = new DiscordBot();
+let server; // store express server instance
 
 // -------------------------
 // Express HTTP server
@@ -25,7 +26,7 @@ app.get('/killbot', async (req, res) => {
 
 // Start server
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+server = app.listen(PORT, () => {
   success(`🌐 HTTP server listening on port ${PORT}`);
 });
 
@@ -61,11 +62,23 @@ async function shutdown(code) {
   warn('🛑 Shutting down...');
 
   try {
+    // Kill bot
     if (bot?.ws?.status === 0) {
       await bot.destroy();
       warn('Bot disconnected.');
     } else {
       warn('Bot already disconnected.');
+    }
+
+    // Kill express
+    if (server) {
+      await new Promise((resolve, reject) => {
+        server.close((err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+      warn('HTTP server closed.');
     }
   } catch (e) {
     error('Shutdown error:', e);
